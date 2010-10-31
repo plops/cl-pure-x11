@@ -33,15 +33,115 @@
 	     (sb-sys:read-n-bytes *s* buf 0 (length buf))
 	     (defparameter *resp* buf)))))
 
+
+(defun pad (n)
+  "difference to next number that is dividable by 4"
+  (if (= 0 (mod n 4))
+      0
+      (- (* 4 (1+ (floor n 4)))
+	 n)))
+#+nil
+(pad 7)
+#+nil
+(pad 8)
+
+(defun parse-initial-response (r)
+  (let ((current 0))
+   (labels ((card8 ()
+	      (prog1
+		  (aref r current)
+		(incf current)))
+	    (card16 ()
+	      (prog1
+		  (+ (aref r current)
+		     (* 256 (aref r (1+ current))))
+		(incf current 2)))
+	    (card32 ()
+	      (prog1
+		  (+ (aref r current)
+		     (* 256 (+ (aref r (1+ current))
+			       (* 256 (+ (aref r (+ 2 current))
+					 (* 256 (aref r (+ 3 current))))))))
+		(incf current 4)))
+	    (string8 (n)
+	      (prog1
+		  (map 'string #'code-char (subseq *resp* current
+						   (+ current n)))
+		(incf current n)))
+	    (inc-current (n)
+	      (incf current n)))
+       (let* ((success (card8))
+	      (unused (card8))
+	      (protocol-major (card16))
+	      (protocol-minor (card16))
+	      (length (card16))
+	      (release (card32))
+	      (resource-id-base (card32))
+	      (resource-id-mask (card32))
+	      (motion-buffer-size (card32))
+	      (length-of-vendor (card16))
+	      (maximum-request-length (card16))
+	      (number-of-screens (card8))
+	      (number-of-formats (card8))
+	      (image-byte-order (card8))
+	      (bitmap-format-bit-order (card8))
+	      (bitmap-format-scanline-unit (card8))
+	      (bitmap-format-scanline-pad (card8))
+	      (min-keycode (card8))
+	      (max-keycode (card8))
+	      (unused2 (card32))
+	      (vendor (string8 length-of-vendor))
+	      (unused3 (inc-current (pad length-of-vendor)))
+	      )
+	 (unless (= 1 success)
+	   (error "connection didn't succeed."))
+	 (format t "~a~%" (list 'major protocol-major
+				'minor protocol-minor
+				'vendor vendor 'release release
+				'motion-buffer-size motion-buffer-size
+				'number-of-screens number-of-screens))
+	 (dotimes (i number-of-formats)
+	   (let ((depth (card8))
+		 (bpp (card8))
+		 (scanline-pad (card8)))
+	     (format t "~a~%" (list 'format depth bpp scanline-pad))))
+	 ))))
+
+(parse-initial-response *resp*)
+
 (let ((success (= 1 (aref *resp* 0)))
       (maximum-request-length (+ (ash (aref *resp* 7) 8)
 				 (aref *resp* 6))))
   success)
+; x11r7proto.pdf p.123 describes request formats
+(let* ((create-gc-list '(55 ; opcode
+			 0 ; unused
+			 5 0 ; length
+			 0 0 #xc2 2 ; cid
+			 #x17 1 0 0 ; drawable
+			 8 0 0 0 ; value-mask background
+			 255 255 255 0 ; background
+
+			 ;; 20 ; opcode get-property
+			 ;; 0 ; delete
+			 ;; 6 0 ; length
+			 ;; #x17 1 0 0 ; window
+			 ;; 23 0 0 0 ; resource-manager
+			 ;; 31 0 0 0 ; get-property-type string
+			 ;; 0 0 0 0 ; offset
+			 ;; 0 #xe1 #xf5 5 ; length
+			 )))
+  (write-sequence 
+   (make-array (length create-gc-list)
+	       :element-type '(unsigned-byte 8)
+	       :initial-contents create-gc-list)
+   *s*)
+  (force-output *s*))
 
 (let* ((create-win-list '(1    ; opcode
 			  24   ; depth
 			  13 0 ; length
-			  #x0d 0 0 3 ; wid
+			  #x0d 0 1 3 ; wid
 			  #x17 1 0 0; parent
 			  0 0 ; x
 			  0 0 ; y
