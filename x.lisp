@@ -60,7 +60,6 @@ the data is sent over the stream *s*."
 	     (sb-sys:read-n-bytes *s* buf 0 (length buf))
 	     (defparameter *resp* buf)))))
 
-
 (defun pad (n)
   "difference to next number that is dividable by 4"
   (if (= 0 (mod n 4))
@@ -195,7 +194,75 @@ the server and stores into dynamic variables."
   (connect)
   (parse-initial-response *resp*)
   (make-window)
-  (draw-window))
+  (draw-window 0 0 100 100))
+
+#+nil
+(time
+ (dotimes (i 100000)
+   (draw-window (random 300) (random 300) (random 200) (random 300))))
+
+#+nil
+(query-pointer)
+
+(defmacro with-reply (r &body body)
+  `(let ((current 0))
+     (labels ((card8 ()
+		(prog1
+		    (aref ,r current)
+		  (incf current)))
+	      (card16 ()
+		(prog1
+		    (+ (aref ,r current)
+		       (* 256 (aref ,r (1+ current))))
+		  (incf current 2)))
+	      (int16 ()
+		(let ((v (card16)))
+		  (if (< v (ash 1 15)) ;; -128 in 8bit: (- (ash 1 7) (ash 1 8))
+		      v
+		      (- v (ash 1 16)))))
+	      (card32 ()
+		(prog1
+		    (+ (aref ,r current)
+		       (* 256 (+ (aref ,r (1+ current))
+				 (* 256 (+ (aref ,r (+ 2 current))
+					   (* 256 (aref ,r (+ 3 current))))))))
+		  (incf current 4)))
+	      (string8 (n)
+		(prog1
+		    (map 'string #'code-char (subseq ,r current
+						     (+ current n)))
+		  (incf current n)))
+	      (inc-current (n)
+		(incf current n)))
+       ,@body)))
+
+
+
+#+nil
+(let ((buf (make-array 31 :element-type '(unsigned-byte 8))))
+  (prog1
+      (read-sequence buf *s*)
+    (defparameter *buf* buf)))
+
+(with-reply *buf*
+  (let*((same-screen (card8))
+	(sequence-number (card16))
+	(reply-length (card32))
+	(root (card32))
+	(child (card32))
+	(root-x (int16))
+	(root-y (int16))
+	(win-x (int16))
+	(win-y (int16))
+	(mask (card16))
+	(unused (inc-current 6)))
+    (format t "~a~%" (list 'sequence-number sequence-number
+			   'root root
+			   'child child
+			   'root-xy (list root-x root-y)
+			   'win-xy (list win-x win-y)
+			   'mask mask))))
+
 
 ; x11r7proto.pdf p.123 describes request formats
 
@@ -244,7 +311,8 @@ the server and stores into dynamic variables."
       (card32 window)			; window
       )))
 
-(defun draw-window ()
+(defun draw-window (x1 y1 x2 y2)
+  (declare ((unsigned-byte 16) x1 y1 x2 y2))
   (with-packet
     (card8 61)				; opcode clear-area
     (card8 0)				; exposures
@@ -255,7 +323,7 @@ the server and stores into dynamic variables."
     (card16 0)				; w 
     (card16 0)				; h
    
-    (let ((segs '((10 20 30 200))))
+    (let ((segs (list (list x1 y1 x2 y2))))
       (card8 66)			  ; opcode poly-segment
       (card8 0)				  ; unused
       (card16 (+ 3 (* 2 (length segs))))  ; length
@@ -264,4 +332,14 @@ the server and stores into dynamic variables."
       (dolist (s segs)
 	(dolist (p s)
 	  (card16 p))))))
+
+
+(defun query-pointer ()
+  (declare ((unsigned-byte 16) x1 y1 x2 y2))
+  (with-packet
+    (card8 38)				; opcode
+    (card8 0)				; unused
+    (card16 2)				; length
+    (card32 *window*)			; window
+    ))
 
