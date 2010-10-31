@@ -2,7 +2,7 @@
   (:use :cl :sb-bsd-sockets))
 (in-package :x)
 
-(progn 
+(defun connect ()
   (defparameter *s*
     (socket-make-stream
      (let ((s (make-instance 'inet-socket :type :stream :protocol :tcp)))
@@ -95,17 +95,71 @@
 	      )
 	 (unless (= 1 success)
 	   (error "connection didn't succeed."))
+	 (defparameter *resource-id-base* resource-id-base)
+	 (defparameter *resource-id-mask* resource-id-mask)
 	 (format t "~a~%" (list 'major protocol-major
 				'minor protocol-minor
 				'vendor vendor 'release release
+				'resource-id-base resource-id-base
+				'resource-id-mask resource-id-mask
 				'motion-buffer-size motion-buffer-size
 				'number-of-screens number-of-screens))
 	 (dotimes (i number-of-formats)
 	   (let ((depth (card8))
 		 (bpp (card8))
-		 (scanline-pad (card8)))
-	     (format t "~a~%" (list 'format depth bpp scanline-pad))))
-	 ))))
+		 (scanline-pad (card8))
+		 (unused (inc-current 5)))
+	     (format t "~a~%" (list 'format 'depth depth 'bpp bpp
+				    'scanline-pad scanline-pad))))
+	 (dotimes (i number-of-screens)
+	   (let ((root (card32))
+		 (default-colormap (card32))
+		 (white-pixel (card32))
+		 (black-pixel (card32))
+		 (current-input-mask (card32))
+		 (width (card16))
+		 (height (card16))
+		 (width-in-mm (card16))
+		 (height-in-mm (card16))
+		 (min-installed-maps (card16))
+		 (max-installed-maps (card16))
+		 (root-visual (card32))
+		 (backing-stores (card8))
+		 (save-unders (card8))
+		 (root-depth (card8))
+		 (number-of-allowed-depths (card8)))
+	     (defparameter *root* root)
+	     (format t "~a~%" (list 'root root
+				    'w width
+				    'h height
+				    'white white-pixel
+				    'black black-pixel
+				    'current-input-mask current-input-mask
+				    'backing-stores backing-stores
+				    'save-unders save-unders
+				    'root-depth root-depth
+				    'number-of-allowed-depths 
+				    number-of-allowed-depths))
+	     (dotimes (i number-of-allowed-depths)
+	       (let ((depth (card8))
+		     (unused (card8))
+		     (number-of-visuals (card16))
+		     (unused2 (card32))
+		     )
+		 (format t "~a~%" (list 'allowed-depth depth
+					'nr-visuals number-of-visuals))
+		 (dotimes (j number-of-visuals)
+		   (let ((visual-id (card32))
+			 (class (card8))
+			 (bits-per-rgb (card8))
+			 (colormap-entries (card16))
+			 (red-mask (card32))
+			 (green-mask (card32))
+			 (blue-mask (card32))
+			 (unused (card32)))
+		     (format t "~a~%" (list 'visual visual-id
+					    'class class
+					    'colormap-entries colormap-entries))))))))))))
 
 (parse-initial-response *resp*)
 
@@ -138,8 +192,110 @@
    *s*)
   (force-output *s*))
 
+(progn
+  (connect)
+  (parse-initial-response *resp*)
+  (make-window)
+  (draw-window))
+
+(defun make-window ()
+ (let* ((l ()) ;; first byte of request gets pushed in first
+	(window (logior *resource-id-base* 
+			(logand *resource-id-mask* 1)))
+	(gc (logior *resource-id-base* 
+			(logand *resource-id-mask* 2))))
+   (defparameter *window* window)
+   (defparameter *gc* gc)
+   (labels ((card8 (a)
+	      (push a l))
+	    (card16 (a)
+	      (dotimes (i 2)
+		(push (ldb (byte 8 (* 8 i)) a) l)))
+	    (card32 (a)
+	      (dotimes (i 4)
+		(push (ldb (byte 8 (* 8 i)) a) l))))
+     (card8 1)	   ; opcode create-window
+     (card8 0)	   ; depth
+     (card16 13)   ; length
+     (card32 window)		       ; wid
+     (card32 *root*)		       ;parent
+     (card16 101)		       ;x
+     (card16 102)		       ;y
+     (card16 201)		       ;w
+     (card16 301)		       ;h
+     (card16 1)			       ; border
+     (card16 0)			       ; window-class copy-from-parent
+     (card32 0)			       ; visual-id copy-from-parent
+     (card32 #x281a) ; value-mask bg border bit-grav event-mask colormap
+     (card32 0)	     ; bg
+     (card32 #x00ffffff)	   ; border
+     (card32 5)			   ; bit-grav center
+     (card32 #x8004)		   ; event-mask button-press  exposure
+     (card32 #x20)		   ;colormap
+   
+     (card8 55)				; opcode create-gc
+     (card8 0)				; unused
+     (card16 6)				; length
+     (card32 gc)			; cid
+     (card32 window)			; drawable
+     (card32 #x0c)			; gc-value-mask fg bg
+     (card32 #x00ffffff)		; fg
+     (card32 0)				; bg
+   
+     (card8 8)				; opcode map-window
+     (card8 0)				; unused
+     (card16 2)				; length
+     (card32 window)			; window
+
+     (let ((buf (make-array (length l)
+			    :element-type '(unsigned-byte 8)
+			    :initial-contents (nreverse l))))
+       (write-sequence buf *s*)
+       (force-output *s*)
+       ))))
+
+(defun draw-window ()
+ (let* ((l ()) ;; first byte of request gets pushed in first
+	)
+   (labels ((card8 (a)
+	      (push a l))
+	    (card16 (a)
+	      (dotimes (i 2)
+		(push (ldb (byte 8 (* 8 i)) a) l)))
+	    (card32 (a)
+	      (dotimes (i 4)
+		(push (ldb (byte 8 (* 8 i)) a) l))))
+
+
+     (card8 61)				; opcode clear-area
+     (card8 0)				; exposures
+     (card16 4)				; length
+     (card32 *window*)			; window
+     (card16 0)				; x
+     (card16 0)				; y 
+     (card16 0)				; w 
+     (card16 0)				; h
+   
+     (let ((segs '((10 20 30 200))))
+       (card8 66)			; opcode poly-segment
+       (card8 0)			; unused
+       (card16 (+ 3 (* 2 (length segs)))) ; length
+       (card32 *window*)			  ; drawable
+       (card32 *gc*)			  ; gc
+       (dolist (s segs)
+	 (dolist (p s)
+	   (card16 p))))
+
+     (let ((buf (make-array (length l)
+			    :element-type '(unsigned-byte 8)
+			    :initial-contents (nreverse l))))
+       (write-sequence buf *s*)
+       (force-output *s*)
+       ))))
+
+
 (let* ((create-win-list '(1    ; opcode
-			  24   ; depth
+			  0   ; depth
 			  13 0 ; length
 			  #x0d 0 1 3 ; wid
 			  #x17 1 0 0; parent
