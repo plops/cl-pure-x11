@@ -10,29 +10,48 @@
 (defparameter *resource-id-base* nil)
 (defparameter *resource-id-mask* nil)
 
+(defmacro with-packet (&body body)
+  "Write values into a list of bytes with card{8,16,32}. Finally all
+the data is sent over the stream *s*."
+  `(let* ((l ()))
+     (labels ((card8 (a)
+		(declare ((unsigned-byte 8) a))
+		(push a l))
+	      (card16 (a)
+		(declare ((unsigned-byte 16) a))
+		(dotimes (i 2)
+		  (push (ldb (byte 8 (* 8 i)) a) l)))
+	      (card32 (a)
+		(declare ((unsigned-byte 32) a))
+		(dotimes (i 4)
+		  (push (ldb (byte 8 (* 8 i)) a) l))))
+       ,@body
+       (let ((buf (make-array (length l)
+			      :element-type '(unsigned-byte 8)
+			      :initial-contents (nreverse l))))
+	 (write-sequence buf *s*)
+	 (force-output *s*)))))
+
 (defun connect ()
   (defparameter *s*
-    (socket-make-stream
-     (let ((s (make-instance 'inet-socket :type :stream :protocol :tcp)))
-       (socket-connect s #(127 0 0 1) 6000)
-       s)
-     :element-type '(unsigned-byte 8)
-     :input t
-     :output t
-     :buffering :none))
-  (let*((req-l (list #x6c ;; LE
-		     0	  ;; unused
-		     11 0 ;; major
-		     0 0  ;; minor
-		     0 0 ;; authorization name could be "MIT-MAGIC-COOKIE-1"
-		     0 0 ;; authorization data should be cookie from .Xauthority
-		     0 0 ;; unused
-		     ))
-	(req (make-array (length req-l)
-			 :element-type '(unsigned-byte 8)
-			 :initial-contents req-l)))
-    (write-sequence req *s*)
-    (force-output *s*))
+    (socket-make-stream (let ((s (make-instance 'inet-socket 
+						:type :stream 
+						:protocol :tcp)))
+			  (socket-connect s #(127 0 0 1) 6000)
+			  s)
+			:element-type '(unsigned-byte 8)
+			:input t
+			:output t
+			:buffering :none))
+  (with-packet
+    (card8 #x6c)	       ; LE
+    (card8 0)		       ; unused
+    (card16 11)		       ; major
+    (card16 0)		       ; minor
+    (card16 0)		       ; length of authorization protocol name
+    (card16 0)		       ; length of authorization protocol data
+    (card16 0)		       ; unused
+    )
   (cond ((not (listen *s*))
 	 (defparameter *resp* nil)
 	 :timeout)
@@ -54,6 +73,8 @@
 (pad 8)
 
 (defun parse-initial-response (r)
+  "Extracts *root*, *resource-id-{base,mask}* from first response of
+the server and stores into dynamic variables."
   (let ((current 0))
    (labels ((card8 ()
 	      (prog1
@@ -178,98 +199,69 @@
 
 ; x11r7proto.pdf p.123 describes request formats
 
-(defun make-window ()
- (let* ((l ()) ;; first byte of request gets pushed in first
-	(window (logior *resource-id-base* 
-			(logand *resource-id-mask* 1)))
-	(gc (logior *resource-id-base* 
-			(logand *resource-id-mask* 2))))
-   (defparameter *window* window)
-   (defparameter *gc* gc)
-   (labels ((card8 (a)
-	      (push a l))
-	    (card16 (a)
-	      (dotimes (i 2)
-		(push (ldb (byte 8 (* 8 i)) a) l)))
-	    (card32 (a)
-	      (dotimes (i 4)
-		(push (ldb (byte 8 (* 8 i)) a) l))))
-     (card8 1)	   ; opcode create-window
-     (card8 0)	   ; depth
-     (card16 13)   ; length
-     (card32 window)		       ; wid
-     (card32 *root*)		       ;parent
-     (card16 101)		       ;x
-     (card16 102)		       ;y
-     (card16 201)		       ;w
-     (card16 301)		       ;h
-     (card16 1)			       ; border
-     (card16 0)			       ; window-class copy-from-parent
-     (card32 0)			       ; visual-id copy-from-parent
-     (card32 #x281a) ; value-mask bg border bit-grav event-mask colormap
-     (card32 0)	     ; bg
-     (card32 #x00ffffff)	   ; border
-     (card32 5)			   ; bit-grav center
-     (card32 #x8004)		   ; event-mask button-press  exposure
-     (card32 #x20)		   ;colormap
-   
-     (card8 55)				; opcode create-gc
-     (card8 0)				; unused
-     (card16 6)				; length
-     (card32 gc)			; cid
-     (card32 window)			; drawable
-     (card32 #x0c)			; gc-value-mask fg bg
-     (card32 #x00ffffff)		; fg
-     (card32 0)				; bg
-   
-     (card8 8)				; opcode map-window
-     (card8 0)				; unused
-     (card16 2)				; length
-     (card32 window)			; window
 
-     (let ((buf (make-array (length l)
-			    :element-type '(unsigned-byte 8)
-			    :initial-contents (nreverse l))))
-       (write-sequence buf *s*)
-       (force-output *s*)
-       ))))
+
+
+(defun make-window ()
+  (let* ((window (logior *resource-id-base* 
+			 (logand *resource-id-mask* 1)))
+	 (gc (logior *resource-id-base* 
+		     (logand *resource-id-mask* 2))))
+    (defparameter *window* window)
+    (defparameter *gc* gc)
+    (with-packet 
+      (card8 1)			       ; opcode create-window
+      (card8 0)			       ; depth
+      (card16 13)		       ; length
+      (card32 window)		       ; wid
+      (card32 *root*)		       ;parent
+      (card16 101)		       ;x
+      (card16 102)		       ;y
+      (card16 201)		       ;w
+      (card16 301)		       ;h
+      (card16 1)		       ; border
+      (card16 0)		       ; window-class copy-from-parent
+      (card32 0)		       ; visual-id copy-from-parent
+      (card32 #x281a) ; value-mask bg border bit-grav event-mask colormap
+      (card32 0)      ; bg
+      (card32 #x00ffffff)	   ; border
+      (card32 5)		   ; bit-grav center
+      (card32 #x8004)		   ; event-mask button-press  exposure
+      (card32 #x20)		   ;colormap
+   
+      (card8 55)			; opcode create-gc
+      (card8 0)				; unused
+      (card16 6)			; length
+      (card32 gc)			; cid
+      (card32 window)			; drawable
+      (card32 #x0c)			; gc-value-mask fg bg
+      (card32 #x00ffffff)		; fg
+      (card32 0)			; bg
+   
+      (card8 8)				; opcode map-window
+      (card8 0)				; unused
+      (card16 2)			; length
+      (card32 window)			; window
+      )))
 
 (defun draw-window ()
- (let* ((l ()) ;; first byte of request gets pushed in first
-	)
-   (labels ((card8 (a)
-	      (push a l))
-	    (card16 (a)
-	      (dotimes (i 2)
-		(push (ldb (byte 8 (* 8 i)) a) l)))
-	    (card32 (a)
-	      (dotimes (i 4)
-		(push (ldb (byte 8 (* 8 i)) a) l))))
-
-
-     (card8 61)				; opcode clear-area
-     (card8 0)				; exposures
-     (card16 4)				; length
-     (card32 *window*)			; window
-     (card16 0)				; x
-     (card16 0)				; y 
-     (card16 0)				; w 
-     (card16 0)				; h
+  (with-packet
+    (card8 61)				; opcode clear-area
+    (card8 0)				; exposures
+    (card16 4)				; length
+    (card32 *window*)			; window
+    (card16 0)				; x
+    (card16 0)				; y 
+    (card16 0)				; w 
+    (card16 0)				; h
    
-     (let ((segs '((10 20 30 200))))
-       (card8 66)			; opcode poly-segment
-       (card8 0)			; unused
-       (card16 (+ 3 (* 2 (length segs)))) ; length
-       (card32 *window*)			  ; drawable
-       (card32 *gc*)			  ; gc
-       (dolist (s segs)
-	 (dolist (p s)
-	   (card16 p))))
-
-     (let ((buf (make-array (length l)
-			    :element-type '(unsigned-byte 8)
-			    :initial-contents (nreverse l))))
-       (write-sequence buf *s*)
-       (force-output *s*)
-       ))))
+    (let ((segs '((10 20 30 200))))
+      (card8 66)			  ; opcode poly-segment
+      (card8 0)				  ; unused
+      (card16 (+ 3 (* 2 (length segs))))  ; length
+      (card32 *window*)			  ; drawable
+      (card32 *gc*)			  ; gc
+      (dolist (s segs)
+	(dolist (p s)
+	  (card16 p))))))
 
