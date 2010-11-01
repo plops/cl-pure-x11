@@ -189,20 +189,6 @@ the server and stores into dynamic variables."
 					    'class class
 					    'colormap-entries colormap-entries))))))))))))
 
-#+nil
-(progn
-  (connect)
-  (parse-initial-response *resp*)
-  (make-window)
-  (draw-window 0 0 100 100))
-
-#+nil
-(time
- (dotimes (i 100000)
-   (draw-window (random 300) (random 300) (random 200) (random 300))))
-
-#+nil
-(query-pointer)
 
 (defmacro with-reply (r &body body)
   `(let ((current 0))
@@ -243,7 +229,7 @@ the server and stores into dynamic variables."
   (prog1
       (read-sequence buf *s*)
     (defparameter *buf* buf)))
-
+#+nil
 (with-reply *buf*
   (let*((same-screen (card8))
 	(sequence-number (card16))
@@ -335,7 +321,6 @@ the server and stores into dynamic variables."
 
 
 (defun query-pointer ()
-  (declare ((unsigned-byte 16) x1 y1 x2 y2))
   (with-packet
     (card8 38)				; opcode
     (card8 0)				; unused
@@ -343,3 +328,54 @@ the server and stores into dynamic variables."
     (card32 *window*)			; window
     ))
 
+(defun put-image (img)
+  (declare ((simple-array (unsigned-byte 8) 2) img))
+  (destructuring-bind (h w)
+      (array-dimensions img)
+   (let*((img1 (sb-ext:array-storage-vector img))
+	 (n (length img1))
+	 (p (pad n))) 
+     (with-packet
+       (card8 72)			; opcode
+       (card8 2)			; format Z-pixmap
+       (card16 (+ 6 (/ (+ n p) 4)))	; length
+       (card32 *window*)		; window
+       (card32 *gc*)
+       (card16 (/ w 3))
+       (card16 h)
+       (card16 0) ; dst-x
+       (card16 0) ; dst-y
+       (card8 0) ; left-pad
+       (card8 24) ; depth
+       (card16 0) ; unused
+       )
+     (write-sequence img1 *s*)
+     (dotimes (i p)
+       (write-byte 0 *s*))
+     (force-output *s*))))
+
+(let*((w 2)
+      (h 2)
+      (c 3)
+      (a (make-array (list h (* w c))
+		     :element-type '(unsigned-byte 8))))
+  (dotimes (j h)
+    (dotimes (i w)
+      (setf (aref a j (+ 0 (* c i))) i
+	    (aref a j (+ 1 (* c i))) j)))
+  (put-image a))
+
+#+nil
+(progn
+  (connect)
+  (parse-initial-response *resp*)
+  (make-window)
+  (draw-window 0 0 100 100))
+
+#+nil
+(time
+ (dotimes (i 100000)
+   (draw-window (random 300) (random 300) (random 200) (random 300))))
+
+#+nil
+(query-pointer)
