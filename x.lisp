@@ -431,18 +431,19 @@ the server and stores into dynamic variables."
 (shmdt *at*)
 
 (shm-attach *shm-id*)
-(shm-get-image 30 80 256 255)
 
-
-(defparameter *img*
-  (let* ((a (make-array (list 255 (* 256 4))
-			:element-type '(unsigned-byte 8)))
-	 (a1 (sb-ext:array-storage-vector a)))
-    ;; calls memmove internally
-    (sb-impl::%byte-blt (sb-alien:alien-sap *at*) 0 a1 0 (* 255 256 4))
-    a))
-
-(put-image *img*)
+(time
+ (dotimes (i 100)
+  (progn
+    (shm-get-image 30 80 256 255)
+    (sleep .02)
+    (defparameter *img*
+      (let* ((a (make-array (list 255 (* 256 4))
+			    :element-type '(unsigned-byte 8)))
+	     (a1 (sb-ext:array-storage-vector a)))
+	(sb-impl::%byte-blt (sb-alien:alien-sap *at*) 0 a1 0 (* 255 256 4))
+	a))
+    (put-image *img*))))
 
 ;; X11/extensions/shmproto.h
 (defun shm-attach (shmid)
