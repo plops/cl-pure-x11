@@ -53,13 +53,47 @@ the data is sent over the stream *s*."
     (card16 0)		       ; unused
     )
   (cond ((not (listen *s*))
-	 (defparameter *resp* nil)
+	 (error "timeout")
 	 :timeout)
-	(t (let ((buf (make-array (1+ (- #x7d5 #x42)) 
-				  :element-type '(unsigned-byte 8))))
-	     (sb-sys:read-n-bytes *s* buf 0 (length buf))
-	     (defparameter *resp* buf)))))
 
+	;; read the first part of the response up to the length
+	#+nil ((success (card8))
+	       (unused (card8))
+	       (protocol-major (card16))
+	       (protocol-minor (card16))
+	       (length (card16)))
+ 	(t (labels ((card16 ()
+		      (+ (read-byte *s*) (* 256 (read-byte *s*))))) 
+	     (let* ((success (read-byte *s*))
+		    (unused (read-byte *s*))
+		    (protocol-major (card16))
+		    (protocol-minor (card16))
+		    (response-length (card16))
+		    (buf (make-array (- response-length 8) 
+				     :element-type '(unsigned-byte 8))))
+	       (unless (= 1 success)
+		 (error "connection didn't succeed."))
+	       (format t "~a~%" (list 'response-length response-length))
+	       (sb-sys:read-n-bytes *s* buf 0 (length buf))
+	       (defparameter *resp* buf))))))
+
+#+nil
+(connect)
+(file-position *s*)
+#+nil
+(parse-initial-response *resp*)
+
+(let ((a (make-array 512 :element-type '(unsigned-byte 8))))
+   (sb-sys:read-n-bytes *s* a 0 (length a)))
+
+(trace listen)
+(sb-impl::ansi-stream-listen *s*)
+(let ((a ()))
+  (read-sequence a *s*))
+
+(sb-impl::ansi-stream *s*)
+(listen *s*)
+(untrace listen)
 (defun pad (n)
   "difference to next number that is dividable by 4"
   (if (= 0 (mod n 4))
@@ -98,11 +132,12 @@ the server and stores into dynamic variables."
 		(incf current n)))
 	    (inc-current (n)
 	      (incf current n)))
-       (let* ((success (card8))
-	      (unused (card8))
-	      (protocol-major (card16))
-	      (protocol-minor (card16))
-	      (length (card16))
+       (let* (;; the first bytes are already read inside (connect)
+	      ;;(success (card8))
+	      ;;(unused (card8))
+	      ;;(protocol-major (card16))
+	      ;;(protocol-minor (card16))
+	      ;;(length (card16))
 	      (release (card32))
 	      (resource-id-base (card32))
 	      (resource-id-mask (card32))
@@ -121,12 +156,10 @@ the server and stores into dynamic variables."
 	      (vendor (string8 length-of-vendor))
 	      (unused3 (inc-current (pad length-of-vendor)))
 	      )
-	 (unless (= 1 success)
-	   (error "connection didn't succeed."))
 	 (defparameter *resource-id-base* resource-id-base)
 	 (defparameter *resource-id-mask* resource-id-mask)
-	 (format t "~a~%" (list 'major protocol-major
-				'minor protocol-minor
+	 (format t "~a~%" (list ;'major protocol-major
+				;'minor protocol-minor
 				'vendor vendor 'release release
 				'resource-id-base resource-id-base
 				'resource-id-mask resource-id-mask
@@ -185,7 +218,7 @@ the server and stores into dynamic variables."
 			 (green-mask (card32))
 			 (blue-mask (card32))
 			 (unused (card32)))
-		     (format t "~a~%" (list 'visual visual-id
+		     (format t "~a~%" (list 'visual j 'id visual-id
 					    'class class
 					    'colormap-entries colormap-entries))))))))))))
 
@@ -341,7 +374,7 @@ the server and stores into dynamic variables."
        (card16 (+ 6 (/ (+ n p) 4)))	; length
        (card32 *window*)		; window
        (card32 *gc*)
-       (card16 (/ w 3))
+       (card16 (/ w 4))
        (card16 h)
        (card16 0) ; dst-x
        (card16 0) ; dst-y
@@ -354,15 +387,17 @@ the server and stores into dynamic variables."
        (write-byte 0 *s*))
      (force-output *s*))))
 
-(let*((w 2)
-      (h 2)
-      (c 3)
+#+nil
+(let*((w 12)
+      (h 12)
+      (c 4)
       (a (make-array (list h (* w c))
 		     :element-type '(unsigned-byte 8))))
   (dotimes (j h)
     (dotimes (i w)
       (setf (aref a j (+ 0 (* c i))) i
-	    (aref a j (+ 1 (* c i))) j)))
+	    (aref a j (+ 1 (* c i))) j
+	    (aref a j (+ 2 (* c i))) 255)))
   (put-image a))
 
 #+nil
