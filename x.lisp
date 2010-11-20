@@ -7,6 +7,7 @@
 (defparameter *root* nil)
 (defparameter *window* nil)
 (defparameter *gc* nil)
+(defparameter *shmseg* nil)
 (defparameter *resource-id-base* nil)
 (defparameter *resource-id-mask* nil)
 
@@ -414,10 +415,62 @@ the server and stores into dynamic variables."
     sb-alien:int
   (shmaddr (* sb-alien:unsigned-char)))
 
-
-
 (defparameter *shm-id* 
   (shmget +ipc-private+ (* 320 240 4) (logior +ipc-creat+ #o777)))
 
 (defparameter *at* (shmat *shm-id* (sb-sys:int-sap 0) 0))
+;(defparameter *at* (shmat *shm-id* (sb-sys:int-sap 0) 0))
+
 (shmdt *at*)
+
+(shm-attach *shm-id*)
+(shm-get-image 30 80 256 255)
+
+(defparameter *img*
+  (let* ((a (make-array (list 255 (* 256 4))
+			:element-type '(unsigned-byte 8)))
+	 (a1 (sb-ext:array-storage-vector a)))
+    (dotimes (i (length a1))
+      (setf (aref a1 i) 
+	    (sb-alien:deref *at* i)))
+    a))
+
+(put-image *img*)
+
+;; X11/extensions/shmproto.h
+(defun shm-attach (shmid)
+  (setf *shmseg* (1+ *gc*))
+  (with-packet
+    (card8 139)				; shm req code
+    (card8 1)				; shm req type
+    (card16 4)				; length
+    (card32 *shmseg*)			; shmseg e.g. #x2e0001
+    (card32 shmid)	      		; shmid, result of shmget
+    (card8 0)				; read only
+    (card8 0)				; pad0
+    (card16 0)				; pad1
+    )
+  (force-output *s*))
+
+(defun shm-get-image (x y w h)
+  (with-packet
+    (card8 139)				; shm req code
+    (card8 4)				; shm req type
+    (card16 8)				; length
+    (card32 *root*)			; drawable
+       
+    (card16 x)
+    (card16 y)
+    (card16 w) 
+    (card16 h) 
+    (card32 #x00ffffff)			; plane mask
+    (card8 2)				; format = z
+    (card8 0)				; pad0
+    (card8 0)				; pad1
+    (card8 0)				; pad2
+    (card32 *shmseg*)			; shmseg
+    (card32 0)				; offset
+    )
+  (force-output *s*))
+
+
