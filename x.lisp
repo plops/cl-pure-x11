@@ -416,23 +416,30 @@ the server and stores into dynamic variables."
   (shmaddr (* sb-alien:unsigned-char)))
 
 (defparameter *shm-id* 
-  (shmget +ipc-private+ (* 320 240 4) (logior +ipc-creat+ #o777)))
+  (shmget +ipc-private+ (* 255 256 4) (logior +ipc-creat+ #o777)))
 
 (defparameter *at* (shmat *shm-id* (sb-sys:int-sap 0) 0))
-;(defparameter *at* (shmat *shm-id* (sb-sys:int-sap 0) 0))
+
+
+
+
+(defparameter *buf* (make-array (list 255 (* 256 4))
+				:element-type '(unsigned-byte 8)))
+(sb-sys:vector-sap 
+ (sb-ext:array-storage-vector *buf*))
 
 (shmdt *at*)
 
 (shm-attach *shm-id*)
 (shm-get-image 30 80 256 255)
 
+
 (defparameter *img*
   (let* ((a (make-array (list 255 (* 256 4))
 			:element-type '(unsigned-byte 8)))
 	 (a1 (sb-ext:array-storage-vector a)))
-    (dotimes (i (length a1))
-      (setf (aref a1 i) 
-	    (sb-alien:deref *at* i)))
+    ;; calls memmove internally
+    (sb-impl::%byte-blt (sb-alien:alien-sap *at*) 0 a1 0 (* 255 256 4))
     a))
 
 (put-image *img*)
