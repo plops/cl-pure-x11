@@ -280,7 +280,7 @@ the server and stores into dynamic variables."
       (card32 *root*)		       ;parent
       (card16 101)		       ;x
       (card16 102)		       ;y
-      (card16 201)		       ;w
+      (card16 300)		       ;w
       (card16 301)		       ;h
       (card16 1)		       ; border
       (card16 0)		       ; window-class copy-from-parent
@@ -365,16 +365,17 @@ the server and stores into dynamic variables."
      (force-output *s*))))
 
 #+nil
-(let*((w 12)
-      (h 12)
+(let*((w 128)
+      (h 256)
       (c 4)
       (a (make-array (list h (* w c))
 		     :element-type '(unsigned-byte 8))))
   (dotimes (j h)
     (dotimes (i w)
-      (setf (aref a j (+ 0 (* c i))) i
-	    (aref a j (+ 1 (* c i))) j
-	    (aref a j (+ 2 (* c i))) 255)))
+      (setf (aref a j (+ 0 (* c i))) i ;; b
+	    (aref a j (+ 1 (* c i))) j ;; g
+	    (aref a j (+ 2 (* c i))) 255 ;; r 
+	    (aref a j (+ 3 (* c i))) 255))) ;; a
   (put-image a))
 
 #+nil
