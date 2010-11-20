@@ -56,44 +56,20 @@ the data is sent over the stream *s*."
 	 (error "timeout")
 	 :timeout)
 
-	;; read the first part of the response up to the length
-	#+nil ((success (card8))
-	       (unused (card8))
-	       (protocol-major (card16))
-	       (protocol-minor (card16))
-	       (length (card16)))
- 	(t (labels ((card16 ()
-		      (+ (read-byte *s*) (* 256 (read-byte *s*))))) 
-	     (let* ((success (read-byte *s*))
-		    (unused (read-byte *s*))
-		    (protocol-major (card16))
-		    (protocol-minor (card16))
-		    (response-length (card16))
-		    (buf (make-array (- response-length 8) 
-				     :element-type '(unsigned-byte 8))))
-	       (unless (= 1 success)
-		 (error "connection didn't succeed."))
-	       (format t "~a~%" (list 'response-length response-length))
-	       (sb-sys:read-n-bytes *s* buf 0 (length buf))
-	       (defparameter *resp* buf))))))
+	;; use sbcl internals to check how many bytes came in response
+ 	(t (let* ((n (sb-impl::buffer-tail (sb-impl::fd-stream-ibuf *s*)))
+		  (buf (make-array n
+				   :element-type '(unsigned-byte 8))))
+	     (format t "~a~%" (list 'response-length n))
+	     (sb-sys:read-n-bytes *s* buf 0 (length buf))
+	     (defparameter *resp* buf)))))
 
 #+nil
 (connect)
-(file-position *s*)
+
 #+nil
 (parse-initial-response *resp*)
 
-(let ((a (make-array 512 :element-type '(unsigned-byte 8))))
-   (sb-sys:read-n-bytes *s* a 0 (length a)))
-
-(trace listen)
-(sb-impl::ansi-stream-listen *s*)
-(let ((a ()))
-  (read-sequence a *s*))
-
-(sb-impl::ansi-stream *s*)
-(listen *s*)
-(untrace listen)
 (defun pad (n)
   "difference to next number that is dividable by 4"
   (if (= 0 (mod n 4))
@@ -132,12 +108,11 @@ the server and stores into dynamic variables."
 		(incf current n)))
 	    (inc-current (n)
 	      (incf current n)))
-       (let* (;; the first bytes are already read inside (connect)
-	      ;;(success (card8))
-	      ;;(unused (card8))
-	      ;;(protocol-major (card16))
-	      ;;(protocol-minor (card16))
-	      ;;(length (card16))
+       (let* ((success (card8))
+	      (unused (card8))
+	      (protocol-major (card16))
+	      (protocol-minor (card16))
+	      (length (card16))
 	      (release (card32))
 	      (resource-id-base (card32))
 	      (resource-id-mask (card32))
@@ -156,10 +131,12 @@ the server and stores into dynamic variables."
 	      (vendor (string8 length-of-vendor))
 	      (unused3 (inc-current (pad length-of-vendor)))
 	      )
+	 (unless (= 1 success)
+	       (error "connection didn't succeed."))
 	 (defparameter *resource-id-base* resource-id-base)
 	 (defparameter *resource-id-mask* resource-id-mask)
-	 (format t "~a~%" (list ;'major protocol-major
-				;'minor protocol-minor
+	 (format t "~a~%" (list 'major protocol-major
+				'minor protocol-minor
 				'vendor vendor 'release release
 				'resource-id-base resource-id-base
 				'resource-id-mask resource-id-mask
