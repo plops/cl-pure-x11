@@ -365,8 +365,8 @@ the server and stores into dynamic variables."
      (force-output *s*))))
 
 #+nil
-(let*((w 128)
-      (h 256)
+(let*((w 256)
+      (h 255)
       (c 4)
       (a (make-array (list h (* w c))
 		     :element-type '(unsigned-byte 8))))
@@ -392,3 +392,32 @@ the server and stores into dynamic variables."
 
 #+nil
 (query-pointer)
+
+
+;; shm code
+(defconstant +ipc-creat+ #o1000)
+(defconstant +ipc-private+ 0) 
+
+(sb-alien:define-alien-routine shmget 
+    sb-alien:int
+  (key sb-alien:int)
+  (size sb-alien:long)
+  (shmflg sb-alien:int))
+
+(sb-alien:define-alien-routine shmat 
+    (* sb-alien:unsigned-char)
+  (shmid sb-alien:int)
+  (shmaddr (* sb-alien:unsigned-char))
+  (shmflg sb-alien:int))
+
+(sb-alien:define-alien-routine shmdt 
+    sb-alien:int
+  (shmaddr (* sb-alien:unsigned-char)))
+
+
+
+(defparameter *shm-id* 
+  (shmget +ipc-private+ (* 320 240 4) (logior +ipc-creat+ #o777)))
+
+(defparameter *at* (shmat *shm-id* (sb-sys:int-sap 0) 0))
+(shmdt *at*)
