@@ -1,3 +1,4 @@
+(require :sb-bsd-sockets)
 (defpackage :x 
   (:use :cl :sb-bsd-sockets))
 (in-package :x)
@@ -53,6 +54,7 @@ the data is sent over the stream *s*."
     (card16 0)		       ; length of authorization protocol data
     (card16 0)		       ; unused
     )
+  (sleep .01)
   (cond ((not (listen *s*))
 	 (error "timeout")
 	 :timeout)
@@ -340,8 +342,8 @@ the server and stores into dynamic variables."
     ))
 
 (defun put-image (img)
-  (declare ((simple-array (unsigned-byte 8) 2) img))
-  (destructuring-bind (h w)
+  (declare ((simple-array (unsigned-byte 8) 3) img))
+  (destructuring-bind (h w c)
       (array-dimensions img)
    (let*((img1 (sb-ext:array-storage-vector img))
 	 (n (length img1))
@@ -352,7 +354,7 @@ the server and stores into dynamic variables."
        (card16 (+ 6 (/ (+ n p) 4)))	; length
        (card32 *window*)		; window
        (card32 *gc*)
-       (card16 (/ w 4))
+       (card16 w)
        (card16 h)
        (card16 0) ; dst-x
        (card16 0) ; dst-y
@@ -415,35 +417,118 @@ the server and stores into dynamic variables."
     sb-alien:int
   (shmaddr (* sb-alien:unsigned-char)))
 
-(defparameter *shm-id* 
-  (shmget +ipc-private+ (* 255 256 4) (logior +ipc-creat+ #o777)))
+(defparameter *shm-id* nil)
+(defparameter *at* nil)
 
-(defparameter *at* (shmat *shm-id* (sb-sys:int-sap 0) 0))
+(defun init-shm ()
+  (setf *shm-id* (shmget +ipc-private+ 
+			 (* 255 256 4) 
+			 (logior +ipc-creat+ #o777))
+	*at* (shmat *shm-id*
+		    (sb-sys:int-sap 0)
+		    0))
+  (shm-attach *shm-id*))
 
 
 
-
-(defparameter *buf* (make-array (list 255 (* 256 4))
-				:element-type '(unsigned-byte 8)))
-(sb-sys:vector-sap 
- (sb-ext:array-storage-vector *buf*))
-
+#+nil
 (shmdt *at*)
 
-(shm-attach *shm-id*)
+(defparameter *lut*
+  (make-array 256
+	      :element-type 'single-float))
 
-(time
- (dotimes (i 100)
-  (progn
-    (shm-get-image 30 80 256 255)
+(defun init-lut ()
+  (setf (aref *lut* 0) 0s0)
+  (loop for i from 1 below (length *lut*) do
+       (setf (aref *lut* i) (log i))))
+(defun log-lut (v)
+  (declare ((unsigned-byte 8) v)
+	   (values single-float &optional))
+  (aref *lut* v))
+
+(defun clamp (v)
+  (cond ((< v 0s0) 0)
+	((< 255s0 v) 255)
+	(t (floor v))))
+
+(defun clone-screen ()
+  (let ((w 256)
+	(h 255))
+    (shm-get-image 30 80 w h)
     (sleep .02)
-    (defparameter *img*
-      (let* ((a (make-array (list 255 (* 256 4))
-			    :element-type '(unsigned-byte 8)))
-	     (a1 (sb-ext:array-storage-vector a)))
-	(sb-impl::%byte-blt (sb-alien:alien-sap *at*) 0 a1 0 (* 255 256 4))
-	a))
-    (put-image *img*))))
+    (let* ((a (make-array (list h w 4)
+			  :element-type '(unsigned-byte 8)))
+	   (a1 (sb-ext:array-storage-vector a)))
+      (sb-sys:with-pinned-objects (a a1)
+	  (sb-impl::%byte-blt (sb-alien:alien-sap *at*) 0 
+			      a1 0 (* 255 256 4)))
+      (let* ((b (make-array (array-dimensions a)
+			    :element-type 'single-float))
+	     (b1 (sb-ext:array-storage-vector b))
+	     (edge (make-array (array-dimensions a)
+			       :element-type '(unsigned-byte 8)))
+	     (spread (make-array (array-dimensions a)
+			       :element-type '(unsigned-byte 8))))
+	(dotimes (i (length a1))
+	  (setf (aref b1 i) (log-lut (aref a1 i))
+		#+nil(let ((v (aref a1 i))) 
+			      (if (/= 0 v) 
+				  (log v)
+				  0s0))))
+	(dotimes (k 3)
+	 (loop for j from 1 below (1- h) do
+	   (loop for i from 1 below (1- w) do
+	     (dotimes (k 3)
+	       (let ((v 0)
+		     (mi -.2)
+		     (ma .07))
+		 (declare ((unsigned-byte 8) v))
+		 (when (< mi 
+			  (- (aref b j (1+ i) k)
+			     (aref b j (1- i) k))
+			  ma)
+		    (setf v 1))
+		 (when (< mi 
+			  (- (aref b (1+ j) i k)
+			     (aref b (1- j) i k))
+			  ma)
+		    (setf v (logior v 2)))
+		 (setf (aref edge j i k) v))))))
+
+	#+nil (dotimes (k 3)
+	  (dotimes (j h)
+	    (let ((current (floor (aref a j 0 k) 2)))
+	     (dotimes (i w)
+	       (when (= 1 (logand 1 (aref edge j i k)))
+		   (setf current (floor (aref a j i k) 2)))
+	       (setf (aref spread j i k) current)))))
+	(dotimes (k 3)
+	  (dotimes (i w)
+	    (let ((current (floor (aref a 0 i k) 2)))
+	     (dotimes (j h)
+	       (when (= 1 (logand 2 (aref edge j i k)))
+		   (setf current (floor (aref a j i k) 2)))
+	       (incf (aref spread j i k) current)))))
+	
+	(put-image spread)))))
+
+
+#+nil
+(init-lut)
+
+#+nil
+(dotimes (i 10000) 
+   (clone-screen))
+
+
+#+nil
+(progn
+  (connect)
+  (parse-initial-response *resp*)
+  (make-window)
+  (init-shm))
+
 
 ;; X11/extensions/shmproto.h
 (defun shm-attach (shmid)
