@@ -368,6 +368,25 @@ the server and stores into dynamic variables."
        (write-byte 0 *s*))
      (force-output *s*))))
 
+#+nil ;; find maximum length
+(loop for n from (* 4 65536) downto (* 4 65529) collect
+     (list n (+ 6 (/ (+ n (pad n)) 4))))
+
+
+;; (/ 262116 4)
+
+(defun put-big-image (img)
+  "Draw a large image by splitting into several put-image requests
+that have a maximum length of the 16-bit length value. This maximum
+length is 262116 bytes, i.e. a maximum width of 65526 pixels is
+supported for 32 bits per pixel."
+  (declare ((simple-array (unsigned-byte 8) 3) img))
+  (destructuring-bind (h w c)
+      (array-dimensions img)
+    (let*((img1 (sb-ext:array-storage-vector img))
+	  (n (length img1))
+	  (p (pad n)))
+      )))
 
 #+nil
 (let*((w 256)
