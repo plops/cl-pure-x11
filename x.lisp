@@ -17,7 +17,11 @@
   "Write values into a list of bytes with card{8,16,32}. Finally all
 the data is sent over the stream *s*."
   `(let* ((l ()))
-     (labels ((card8 (a)
+     (labels ((string8 (a)
+		(declare (type string a))
+		(loop for i below (length a) do
+		     (push (char-code (aref a i)) l)))
+	      (card8 (a)
 		(declare ((unsigned-byte 8) a))
 		(push a l))
 	      (card16 (a)
@@ -342,7 +346,22 @@ the server and stores into dynamic variables."
     (card32 *window*)			; window
     ))
 
+(defun query-extension (name)
+  (declare (type string name)) ;; string should be latin iso 1 encoded
+  (let ((n (length name)))
+   (with-packet
+     (card8 98)				; opcode
+     (card8 0)				; unused
+     (card16 (+ 2 (floor (+ n (pad n)) 4))) ; request length
+     (card16 n) ; length of name
+     (card16 0) ;; unused
+     (string8 name))
+   (dotimes (i (pad n))
+     (write-byte 0 *s*))))
 
+#+nil
+(query-extension "BIG-REQUESTS")
+                  
 (defun big-req-enable ()
   (with-packet
     (card8 133)				; opcode
@@ -484,8 +503,8 @@ supported for 32 bits per pixel."
 #+nil
 (progn
   (connect)
+  (query-extension "BIG-REQUESTS")
   (parse-initial-response *resp*)
-  (big-req-enable)
   (make-window)
   (draw-window 0 0 100 100))
 
