@@ -273,7 +273,7 @@ the server and stores into dynamic variables."
 
 
 
-(defun make-window ()
+(defun make-window (&key (width 512) (height 512))
   (let* ((window (logior *resource-id-base* 
 			 (logand *resource-id-mask* 1)))
 	 (gc (logior *resource-id-base* 
@@ -288,8 +288,8 @@ the server and stores into dynamic variables."
       (card32 *root*)		       ;parent
       (card16 101)		       ;x
       (card16 102)		       ;y
-      (card16 512)		       ;w
-      (card16 512)		       ;h
+      (card16 width)		       ;w
+      (card16 height)		       ;h
       (card16 1)		       ; border
       (card16 0)		       ; window-class copy-from-parent
       (card32 0)		       ; visual-id copy-from-parent
@@ -357,7 +357,7 @@ the server and stores into dynamic variables."
      (card16 0) ;; unused
      (string8 name))
    (dotimes (i (pad n))
-     (write-byte 0 *s*))))
+     (write-byte 0 *s*)))) ;; FIXME: i should implement reading the response to get the opcodes
 
 #+nil
 (query-extension "BIG-REQUESTS")
@@ -419,16 +419,6 @@ the server and stores into dynamic variables."
 
   (make-window)
   (draw-window 0 0 100 100))
-
-
-;; FreePixmap
-;; 1        54 opcode
-;; 1        unused
-;; 2 2      request length
-;; 4 PIXMAP pixmap
-
-;; This request deletes the association between the resource ID and the pixmap. The pixmap storage
-;; will be freed when no other resource references it.
 
 #+nil
 (time
