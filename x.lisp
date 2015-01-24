@@ -380,14 +380,14 @@ the server and stores into dynamic variables."
 (let*((w 256)
       (h 255)
       (c 4)
-      (a (make-array (list h (* w c))
+      (a (make-array (list h w c)
 		     :element-type '(unsigned-byte 8))))
   (dotimes (j h)
     (dotimes (i w)
-      (setf (aref a j (+ 0 (* c i))) i ;; b
-	    (aref a j (+ 1 (* c i))) j ;; g
-	    (aref a j (+ 2 (* c i))) 255 ;; r 
-	    (aref a j (+ 3 (* c i))) 255))) ;; a
+      (setf (aref a j i 0) i ;; b
+	    (aref a j i 1) j ;; g
+	    (aref a j i 2) 255 ;; r 
+	    (aref a j i 3) 255))) ;; a
   (put-image a))
 
 #+nil
