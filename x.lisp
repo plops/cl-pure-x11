@@ -3,6 +3,15 @@
   (:use :cl :sb-bsd-sockets))
 (in-package :x)
 
+;; FreePixmap
+;; 1        54 opcode
+;; 1        unused
+;; 2 2      request length
+;; 4 PIXMAP pixmap
+
+;; This request deletes the association between the resource ID and the pixmap. The pixmap storage
+;; will be freed when no other resource references it.
+
 (defparameter *s* nil)
 (defparameter *resp* nil)
 (defparameter *root* nil)
@@ -518,7 +527,7 @@ the server and stores into dynamic variables."
 (init-lut)
 
 #+nil
-(dotimes (i 10000) 
+(dotimes (i 100) 
    (clone-screen))
 
 
