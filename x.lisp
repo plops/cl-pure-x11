@@ -288,8 +288,8 @@ the server and stores into dynamic variables."
       (card32 *root*)		       ;parent
       (card16 101)		       ;x
       (card16 102)		       ;y
-      (card16 300)		       ;w
-      (card16 301)		       ;h
+      (card16 512)		       ;w
+      (card16 512)		       ;h
       (card16 1)		       ; border
       (card16 0)		       ; window-class copy-from-parent
       (card32 0)		       ; visual-id copy-from-parent
@@ -406,7 +406,7 @@ the server and stores into dynamic variables."
        (card8 72)			; opcode
        (card8 2)			; format Z-pixmap
        (card16 0)	; length=0 => this is a big request
-       (card32 (+ 6 (/ (+ n p) 4)))
+       (card32 (+ 7 (/ (+ n p) 4)))
        (card32 *window*)		; window
        (card32 *gc*)
        (card16 w)
@@ -487,15 +487,15 @@ supported for 32 bits per pixel."
 	    (put-image ()))))))
 
 #+nil
-(let*((w 256)
-      (h 255)
+(let*((w 512)
+      (h 512)
       (c 4)
       (a (make-array (list h w c)
 		     :element-type '(unsigned-byte 8))))
   (dotimes (j h)
     (dotimes (i w)
-      (setf (aref a j i 0) i ;; b
-	    (aref a j i 1) j ;; g
+      (setf (aref a j i 0) (mod i 255)	  ;; b
+	    (aref a j i 1) (mod j 255)		  ;; g
 	    (aref a j i 2) 255 ;; r 
 	    (aref a j i 3) 255))) ;; a
   (put-image-big-req a))
@@ -503,8 +503,10 @@ supported for 32 bits per pixel."
 #+nil
 (progn
   (connect)
-  (query-extension "BIG-REQUESTS")
   (parse-initial-response *resp*)
+  (query-extension "BIG-REQUESTS")
+  (big-req-enable)
+
   (make-window)
   (draw-window 0 0 100 100))
 
