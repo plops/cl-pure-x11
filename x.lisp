@@ -391,17 +391,18 @@ supported for 32 bits per pixel."
 	  (put-image img)
 	  ))))
 
-(destructuring-bind (h w c) (list 1024 1025 4)
-  (loop for n from 2 upto 20 collect
-     ;; split in 2, 4, 16 ... put-image requests of roughly equal size
-       (let* ((h-split (floor h n))
-	      (n-split (* h-split w c))
-	      (payload-split (+ 6 (/ (+ n-split (pad n-split)) 4))))
-	 (list  n h-split (< payload-split 65535)))))
-
-(floor 1026 (expt 2 10))
-
-(ceiling (log 1026 2))
+(defun find-vertical-split-for-reduced-payload  (img)
+;;  (declare ((simple-array (unsigned-byte 8) 3) img))
+ (destructuring-bind (h w c) (list 1293 3912 4)		;(array-dimensions img)
+   (loop for n from 2 upto h do
+      ;; split in 2, 4, 16 ... put-image requests of roughly equal size
+	(let* ((h-split (floor h n))
+	       (n-split (* h-split w c))
+	       (payload-split (+ 6 (/ (+ n-split (pad n-split)) 4))))
+	  (if (< payload-split 65535)
+	      (return-from find-vertical-split-for-reduced-payload n))))))
+#+nil
+(find-vertical-split-for-reduced-payload nil)
 
 #+nil
 (let*((w 256)
