@@ -394,10 +394,10 @@ supported for 32 bits per pixel."
 (destructuring-bind (h w c) (list 1024 1025 4)
   (loop for n from 2 upto 20 collect
      ;; split in 2, 4, 16 ... put-image requests of roughly equal size
-       (let* ((w-split (floor w n))
-	      (n-split (* h w-split c))
+       (let* ((h-split (floor h n))
+	      (n-split (* h-split w c))
 	      (payload-split (+ 6 (/ (+ n-split (pad n-split)) 4))))
-	 (list  n w-split (< payload-split 65535)))))
+	 (list  n h-split (< payload-split 65535)))))
 
 (floor 1026 (expt 2 10))
 
