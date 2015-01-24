@@ -342,6 +342,14 @@ the server and stores into dynamic variables."
     (card32 *window*)			; window
     ))
 
+
+(defun big-req-enable ()
+  (with-packet
+    (card8 133)				; opcode
+    (card8 0)				; bigreq opcode
+    (card16 1)				; length
+    ))
+
 (defun put-image (img)
   (declare ((simple-array (unsigned-byte 8) 3) img))
   (destructuring-bind (h w c)
