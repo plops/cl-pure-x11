@@ -3,14 +3,6 @@
   (:use :cl :sb-bsd-sockets))
 (in-package :x)
 
-;; FreePixmap
-;; 1        54 opcode
-;; 1        unused
-;; 2 2      request length
-;; 4 PIXMAP pixmap
-
-;; This request deletes the association between the resource ID and the pixmap. The pixmap storage
-;; will be freed when no other resource references it.
 
 (defparameter *s* nil)
 (defparameter *resp* nil)
@@ -376,9 +368,10 @@ the server and stores into dynamic variables."
        (write-byte 0 *s*))
      (force-output *s*))))
 
+
 #+nil
 (let*((w 256)
-      (h 255)
+      (h 256)
       (c 4)
       (a (make-array (list h w c)
 		     :element-type '(unsigned-byte 8))))
@@ -396,6 +389,16 @@ the server and stores into dynamic variables."
   (parse-initial-response *resp*)
   (make-window)
   (draw-window 0 0 100 100))
+
+
+;; FreePixmap
+;; 1        54 opcode
+;; 1        unused
+;; 2 2      request length
+;; 4 PIXMAP pixmap
+
+;; This request deletes the association between the resource ID and the pixmap. The pixmap storage
+;; will be freed when no other resource references it.
 
 #+nil
 (time
