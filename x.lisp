@@ -385,8 +385,23 @@ supported for 32 bits per pixel."
       (array-dimensions img)
     (let*((img1 (sb-ext:array-storage-vector img))
 	  (n (length img1))
-	  (p (pad n)))
-      )))
+	  (p (pad n))
+	  (payload-length (+ 6 (/ (+ n p) 4))))
+      (if (<= payload-length 65535)
+	  (put-image img)
+	  ))))
+
+(destructuring-bind (h w c) (list 1024 1025 4)
+  (loop for n from 1 below (floor (log w 2)) collect
+       ;; split in 2, 4, 16 ... put-image requests of roughly equal size
+       (let* ((w-split (floor w (expt 2 n)))
+	      (n-split (* h w-split c)))
+	 (list  w-split (+ 6 (/ (+ n-split (pad n-split)) 4)))
+)))
+
+(floor 1026 (expt 2 10))
+
+(ceiling (log 1026 2))
 
 #+nil
 (let*((w 256)
