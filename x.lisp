@@ -368,12 +368,52 @@ the server and stores into dynamic variables."
        (write-byte 0 *s*))
      (force-output *s*))))
 
+(defun put-sub-image (img &key (start 0) (end (length img)))
+  (declare ((simple-array (unsigned-byte 8) 1) img))
+  (destructuring-bind (h w c)
+      (array-dimensions img)
+   (let*((img1 (sb-ext:array-storage-vector img))
+	 (n (length img1))
+	 (p (pad n))) 
+     (with-packet
+       (card8 72)			; opcode
+       (card8 2)			; format Z-pixmap
+       (card16 (+ 6 (/ (+ n p) 4)))	; length
+       (card32 *window*)		; window
+       (card32 *gc*)
+       (card16 w)
+       (card16 h)
+       (card16 0) ; dst-x
+       (card16 0) ; dst-y
+       (card8 0) ; left-pad
+       (card8 24) ; depth
+       (card16 0) ; unused
+       )
+     (write-sequence img1 *s*)
+     (dotimes (i p)
+       (write-byte 0 *s*))
+     (force-output *s*))))
+
 #+nil ;; find maximum length
 (loop for n from (* 4 65536) downto (* 4 65529) collect
      (list n (+ 6 (/ (+ n (pad n)) 4))))
 
 
 ;; (/ 262116 4)
+
+
+(defun find-vertical-split-for-reduced-payload  (img)
+  (declare ((simple-array (unsigned-byte 8) 3) img))
+  (destructuring-bind (h w c) (array-dimensions img)
+    (loop for n from 2 upto h do
+	 (let* ((h-split (floor h n))
+		(n-split (* h-split w c))
+		(payload-split (+ 6 (/ (+ n-split (pad n-split)) 4))))
+	   (if (< payload-split 65535)
+	       (return-from find-vertical-split-for-reduced-payload n))))))
+#+nil
+(find-vertical-split-for-reduced-payload nil)
+
 
 (defun put-big-image (img)
   "Draw a large image by splitting into several put-image requests
@@ -389,20 +429,8 @@ supported for 32 bits per pixel."
 	  (payload-length (+ 6 (/ (+ n p) 4))))
       (if (<= payload-length 65535)
 	  (put-image img)
-	  ))))
-
-(defun find-vertical-split-for-reduced-payload  (img)
-;;  (declare ((simple-array (unsigned-byte 8) 3) img))
- (destructuring-bind (h w c) (list 1293 3912 4)		;(array-dimensions img)
-   (loop for n from 2 upto h do
-      ;; split in 2, 4, 16 ... put-image requests of roughly equal size
-	(let* ((h-split (floor h n))
-	       (n-split (* h-split w c))
-	       (payload-split (+ 6 (/ (+ n-split (pad n-split)) 4))))
-	  (if (< payload-split 65535)
-	      (return-from find-vertical-split-for-reduced-payload n))))))
-#+nil
-(find-vertical-split-for-reduced-payload nil)
+	  (let ((num (find-vertical-split-for-reduced-payload img)))
+	    (put-image ()))))))
 
 #+nil
 (let*((w 256)
