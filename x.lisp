@@ -376,6 +376,33 @@ the server and stores into dynamic variables."
        (write-byte 0 *s*))
      (force-output *s*))))
 
+(defun put-image-big-req (img)
+  (declare ((simple-array (unsigned-byte 8) 3) img))
+  (destructuring-bind (h w c)
+      (array-dimensions img)
+   (let*((img1 (sb-ext:array-storage-vector img))
+	 (n (length img1))
+	 (p (pad n))) 
+     (with-packet
+       (card8 72)			; opcode
+       (card8 2)			; format Z-pixmap
+       (card16 0)	; length=0 => this is a big request
+       (card32 (+ 6 (/ (+ n p) 4)))
+       (card32 *window*)		; window
+       (card32 *gc*)
+       (card16 w)
+       (card16 h)
+       (card16 0) ; dst-x
+       (card16 0) ; dst-y
+       (card8 0) ; left-pad
+       (card8 24) ; depth
+       (card16 0) ; unused
+       )
+     (write-sequence img1 *s*)
+     (dotimes (i p)
+       (write-byte 0 *s*))
+     (force-output *s*))))
+
 (defun put-sub-image (img &key (start 0) (end (length img)))
   (declare ((simple-array (unsigned-byte 8) 1) img))
   (destructuring-bind (h w c)
@@ -442,7 +469,7 @@ supported for 32 bits per pixel."
 
 #+nil
 (let*((w 256)
-      (h 256)
+      (h 255)
       (c 4)
       (a (make-array (list h w c)
 		     :element-type '(unsigned-byte 8))))
@@ -452,12 +479,13 @@ supported for 32 bits per pixel."
 	    (aref a j i 1) j ;; g
 	    (aref a j i 2) 255 ;; r 
 	    (aref a j i 3) 255))) ;; a
-  (put-image a))
+  (put-image-big-req a))
 
 #+nil
 (progn
   (connect)
   (parse-initial-response *resp*)
+  (big-req-enable)
   (make-window)
   (draw-window 0 0 100 100))
 
