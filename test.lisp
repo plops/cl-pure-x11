@@ -1,3 +1,9 @@
+(eval-when (:execute :load-toplevel :compile-toplevel)
+  (setf asdf:*central-registry*
+        '(*default-pathname-defaults*
+          #p"/home/martin/stage/cl-pure-x11/"))
+  (asdf:load-system "x"))
+
 #+nil
 (let*((w 512)
       (h 512)
