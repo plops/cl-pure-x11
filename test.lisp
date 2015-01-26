@@ -1,3 +1,4 @@
+
 (eval-when (:execute :load-toplevel :compile-toplevel)
   (setf asdf:*central-registry*
         '(*default-pathname-defaults*
@@ -20,6 +21,8 @@
 	    (aref a j i 2) 255 ;; r 
 	    (aref a j i 3) 255))) ;; a
   (put-image-big-req a))
+
+
 
 #+nil
 (progn

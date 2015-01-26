@@ -114,7 +114,7 @@
 		   (setf current (floor (aref a j i k) 2)))
 	       (incf (aref spread j i k) current)))))
 	
-	(put-image spread)))))
+	(put-image-big-req spread)))))
 
 
 #+nil

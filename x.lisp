@@ -1,3 +1,4 @@
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
 (in-package :pure-x11)
 
 (defparameter *s* nil "Socket for communication with X server.")
