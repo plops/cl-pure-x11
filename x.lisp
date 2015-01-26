@@ -1,8 +1,8 @@
 (in-package :x)
 
-(defparameter *s* nil)
-(defparameter *resp* nil)
-(defparameter *root* nil)
+(defparameter *s* nil "Socket for communication with X server.")
+(defparameter *resp* nil "Response of the X server to a request")
+(defparameter *root* nil "Root ID as extracted from the initial response of the X server.")
 (defparameter *window* nil)
 (defparameter *gc* nil)
 (defparameter *shmseg* nil)
