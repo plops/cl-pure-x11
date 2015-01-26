@@ -1,3 +1,4 @@
+(in-package :pure-x11)
 
 ;; shm code
 (defconstant +ipc-creat+ #o1000)

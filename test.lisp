@@ -2,7 +2,10 @@
   (setf asdf:*central-registry*
         '(*default-pathname-defaults*
           #p"/home/martin/stage/cl-pure-x11/"))
-  (asdf:load-system "x"))
+  (asdf:load-system "pure-x11"))
+
+(defpackage :g (:use :pure-x11))
+(in-package :g)
 
 #+nil
 (let*((w 512)
@@ -21,7 +24,7 @@
 #+nil
 (progn
   (connect)
-  (parse-initial-response *resp*)
+  (parse-initial-response pure-x11::*resp*)
   (query-extension "BIG-REQUESTS")
   (big-req-enable)
 

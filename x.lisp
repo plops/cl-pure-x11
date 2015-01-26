@@ -1,4 +1,4 @@
-(in-package :x)
+(in-package :pure-x11)
 
 (defparameter *s* nil "Socket for communication with X server.")
 (defparameter *resp* nil "Response of the X server to a request")

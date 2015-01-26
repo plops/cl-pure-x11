@@ -1,4 +1,4 @@
-(defpackage :x 
+(defpackage :pure-x11
   (:use :cl :sb-bsd-sockets)
   (:export
    #:connect
