@@ -12,6 +12,7 @@
 
 (defparameter *big-request-opcode* 133)
 
+#+generate-doc
 (defsection @pure-x11-internal (:title "Internal details")
   "I used <http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf> as
   a reference to implement the X protocol. There are requests and
