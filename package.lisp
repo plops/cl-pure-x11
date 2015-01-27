@@ -1,18 +1,20 @@
 (mgl-pax:define-package :pure-x11
-  (:documentation "This package provides a socket based lisp-only
-  interface to X11. It started as an experiment but as I added support
-  for XPutImage using BIG-REQUESTS it now seems more useful to me than
-  CLX. See PURE-X11:@PURE-X11-MANUAL.")
+  (:documentation "socket based lisp-only interface to X11")
   (:use #:common-lisp #:sb-bsd-sockets #:mgl-pax))
 
 (in-package :pure-x11)
 
 (defsection @pure-x11-manual (:title "Pure X11 manual")
-  "Connect will send a request to open a connection to the X-Server
-and parses its response to obtain the constants *RESOURCE-ID-BASE*,
-*RESOURCE-ID-MASK* and *ROOT*. These are stored in dynamic variables
-and are later used by other functions, e.g. by MAKE-WINDOW to create a
-new window."
+  "This package provides a socket based lisp-only interface to X11. It
+  started as an experiment but as I added support for XPutImage using
+  BIG-REQUESTS it now seems more useful to me than CLX. See
+  PURE-X11:@PURE-X11-MANUAL. 
+
+  Connect will send a request to open a connection to the X-Server and
+  parses its response to obtain the constants *RESOURCE-ID-BASE*,
+  *RESOURCE-ID-MASK* and *ROOT*. These are stored in dynamic variables
+  and are later used by other functions, e.g. by MAKE-WINDOW to create
+  a new window."
   (connect function)
   (make-window function)
   (draw-window function)

@@ -8,11 +8,16 @@
 - [2 Internal details][17e9]
 
 ###### \[in package PURE-X11\]
-Connect will send a request to open a connection to the X-Server
-and parses its response to obtain the constants [`*RESOURCE-ID-BASE*`][7030],
+This package provides a socket based lisp-only interface to X11. It
+started as an experiment but as I added support for XPutImage using
+BIG-REQUESTS it now seems more useful to me than CLX. See
+[Pure X11 manual][5c7f]. 
+
+Connect will send a request to open a connection to the X-Server and
+parses its response to obtain the constants [`*RESOURCE-ID-BASE*`][7030],
 [`*RESOURCE-ID-MASK*`][bfdf] and [`*ROOT*`][8f21]. These are stored in dynamic variables
-and are later used by other functions, e.g. by [`MAKE-WINDOW`][05e1] to create a
-new window.
+and are later used by other functions, e.g. by [`MAKE-WINDOW`][05e1] to create
+a new window.
 
 <a name='x-28PURE-X11-3ACONNECT-20FUNCTION-29'></a>
 
@@ -180,6 +185,7 @@ The following function [`QUERY-POINTER`][c5c4] can act as a simple
   [0857]: #x-28PURE-X11-3A-40PURE-X11-EXAMPLES-20MGL-PAX-3ASECTION-29 "(PURE-X11:@PURE-X11-EXAMPLES MGL-PAX:SECTION)"
   [17e9]: #x-28PURE-X11-3A-40PURE-X11-INTERNAL-20MGL-PAX-3ASECTION-29 "(PURE-X11:@PURE-X11-INTERNAL MGL-PAX:SECTION)"
   [40a1]: #x-28PURE-X11-3A-2AWINDOW-2A-20VARIABLE-29 "(PURE-X11:*WINDOW* VARIABLE)"
+  [5c7f]: #x-28PURE-X11-3A-40PURE-X11-MANUAL-20MGL-PAX-3ASECTION-29 "(PURE-X11:@PURE-X11-MANUAL MGL-PAX:SECTION)"
   [7030]: #x-28PURE-X11-3A-2ARESOURCE-ID-BASE-2A-20VARIABLE-29 "(PURE-X11:*RESOURCE-ID-BASE* VARIABLE)"
   [866d]: #x-28PURE-X11-3AREAD-REPLY-WAIT-20FUNCTION-29 "(PURE-X11:READ-REPLY-WAIT FUNCTION)"
   [8f21]: #x-28PURE-X11-3A-2AROOT-2A-20VARIABLE-29 "(PURE-X11:*ROOT* VARIABLE)"
