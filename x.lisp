@@ -12,6 +12,53 @@
 
 (defparameter *big-request-opcode* 133)
 
+(defsection @pure-x11-internal (:title "Internal details")
+  "I used http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf as a
+  reference to implement the X protocol. There are requests and
+  replys. Requests are sent from the Lisp code to the X Server and
+  replys are read back. I implemented several versions of functions
+  for reading from the socket: blocking, non-blocking and one that
+  uses SBCL interals to read everything that is currently in the
+  buffer. Of those, I strive to only use the blocking READ-REPLY-WAIT,
+  as this is the only one which will give robust code.
+
+  The packets as defined by the X protocol contain information stored
+  in various types of which I currently support CARD{8,16,32} and
+  STRING8. I use the macro WITH-PACKET to create a request and
+  WITH-REPLY to parse a response. Both define a local function for
+  each type that will write/return a properly constructed binary
+  packet/parsed Common Lisp value to/from the stream, while
+  maintaining a counter to keep track of the currently written byte
+  position.
+
+  The following function QUERY-POINTER can act as a simple
+  example. First a query pointer request is constructed and sent using
+  WITH-PACKET. Then the reply is read back using READ-REPLY-WAIT and
+  parsed inside the macro WITH-REPLY:
+
+```common-lisp
+(defun query-pointer ()
+  (with-packet
+    (card8 38)				; opcode
+    (card8 0)				; unused
+    (card16 2)				; length
+    (card32 *window*)			; window
+    )
+  (with-reply (read-reply-wait)
+    (let ((reply (card8))
+	  (same-screen (card8))
+	  (sequence-number (card16))
+	  (reply-length (card32))
+	  (root (card32))
+	  (child (card32))
+	  (root-x (card16))
+	  (root-y (card16))
+	  (win-x (card16))
+	  (win-y (card16)))
+      (values root-x root-y win-x win-y))))
+```
+")
+
 (defmacro with-packet (&body body)
   "Write values into a list of bytes with card{8,16,32}. Finally all
 the data is sent over the stream *s*."

@@ -5,23 +5,27 @@
   CLX. See PURE-X11:@PURE-X11-MANUAL.")
   (:use #:common-lisp #:sb-bsd-sockets #:mgl-pax))
 
+(in-package :pure-x11)
+
 (defsection @pure-x11-manual (:title "Pure X11 manual")
-  "Here you describe what's common to all the referenced (and
-  exported) functions that follow. They work with *FOO-STATE*,
-  and have a :RANDOM-STATE keyword arg. Also explain when to 
-  choose which."
+  "Connect will send a request to open a connection to the X-Server
+and parses its response to obtain the constants *RESOURCE-ID-BASE*,
+*RESOURCE-ID-MASK* and *ROOT*. These are stored in dynamic variables
+and are later used by other functions, e.g. by MAKE-WINDOW to create a
+new window."
   (connect function)
   (make-window function)
   (draw-window function)
   (query-pointer function)
   (put-image-big-req function)
-  (@pure-x11-examples section))
+  (@pure-x11-examples section)
+  (@pure-x11-internal section))
 
 (defsection @pure-x11-examples (:title "Examples")
   "Let's see the transcript of a real session of someone working
   with PURE-X11:
 
-  ```cl-transcript
+  ```cl-transcrip
   (progn ;; open a window and draw a line
     (connect)
     (make-window)
@@ -31,6 +35,8 @@
   => 700, 700, 302, -321
   ```")
 
+#+nil
+(describe @pure-x11-manual)
 
 ;; (defpackage :pure-x11
 ;;   (:use :cl )

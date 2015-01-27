@@ -5,8 +5,13 @@
           #p"/home/martin/stage/cl-pure-x11/"))
   (asdf:load-system "pure-x11"))
 
+
 (defpackage :g (:use  :cl :pure-x11))
 (in-package :g)
+
+#+nil
+(with-open-file (s "/home/martin/stage/cl-pure-x11/README.md" :direction :output :if-exists :supersede :if-does-not-exist :create)
+  (describe @pure-x11-manual s))
 
 #+nil
 (let*((w 512)
@@ -18,7 +23,7 @@
     (dotimes (i w)
       (setf (aref a j i 0) (mod i 255)	  ;; b
 	    (aref a j i 1) (mod j 255)		  ;; g
-	    (aref a j i 2) 255 ;; r 
+	    (aref a j i 2) 255 ;; r
 	    (aref a j i 3) 255))) ;; a
   (put-image-big-req a))
 
