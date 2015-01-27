@@ -2,8 +2,8 @@
 (in-package :pure-x11)
 
 (defparameter *s* nil "Socket for communication with X server.")
-(defparameter *resp* nil "Response of the X server to a request")
-(defparameter *root* nil "Root ID as extracted from the initial response of the X server.")
+(defparameter *resp* nil "Reply of the X server to a request")
+(defparameter *root* nil "Root ID as extracted from the initial reply of the X server.")
 (defparameter *window* nil)
 (defparameter *gc* nil)
 (defparameter *shmseg* nil)
@@ -36,21 +36,26 @@ the data is sent over the stream *s*."
 	 (write-sequence buf *s*)
 	 (force-output *s*)))))
 
-(defun read-response-wait (&key (request-size nil))
-  (let* ((n (or request-size
-		(sb-impl::buffer-tail (sb-impl::fd-stream-ibuf *s*)))) ;; use sbcl internals to check how many bytes came in response
-	 (buf (make-array n
+;; Every reply contains a 32-bit length field expressed in units of
+;; four bytes. Every reply consists of 32 bytes followed by zero or
+;; more additional bytes of data, as specified in the length field.
+;; Unused bytes within a reply are not guaranteed to be zero. Every
+;; reply also contains the least sig- nificant 16 bits of the sequence
+;; number of the corresponding request. (this is implicitly assigned)
+
+
+(defun read-reply-wait ()
+  (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
-    (format t "~a~%" (list 'response-length n))
     (sb-sys:read-n-bytes *s* buf 0 (length buf))
     buf))
 
-(defun read-response ()
+(defun read-reply ()
   (cond ((not (listen *s*))
 	 (error "timeout")
 	 :timeout)
 
- 	(t  (read-response-wait))))
+ 	(t  (read-reply-wait))))
 
 (defun connect ()
   (defparameter *s*
@@ -73,13 +78,13 @@ the data is sent over the stream *s*."
     (card16 0)		       ; unused
     )
   (sleep .01)
-  (setf *resp* (read-response-wait)))
+  (setf *resp* (read-reply-wait)))
 
 #+nil
 (connect)
 
 #+nil
-(parse-initial-response *resp*)
+(parse-initial-reply *resp*)
 
 (defun pad (n)
   "difference to next number that is dividable by 4"
@@ -92,7 +97,7 @@ the data is sent over the stream *s*."
 #+nil
 (pad 8)
 
-(defun parse-initial-response (r)
+(defun parse-initial-reply (r)
   "Extracts *root*, *resource-id-{base,mask}* from first response of
 the server and stores into dynamic variables."
   (let ((current 0))

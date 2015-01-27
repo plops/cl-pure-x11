@@ -25,7 +25,7 @@
 #+nil
 (progn
   (connect)
-  (parse-initial-response pure-x11::*resp*)
+  (parse-initial-reply pure-x11::*resp*)
   (query-extension "BIG-REQUESTS")
   (big-req-enable)
 
@@ -35,21 +35,15 @@
 #+nil
 (draw-window 0 0 100 100)
 #+nil
-(read-response)
+(read-reply)
 #+nil
 (progn
   (defparameter *my-resp* nil)
  (sb-thread:make-thread #'(lambda ()
 			    (setf *my-resp* (list (get-universal-time)
-						  (read-response-wait))))
+						  (read-reply-wait))))
 			:name "bla"))
 
-;; Every reply contains a 32-bit length field expressed in units of
-;; four bytes. Every reply consists of 32 bytes followed by zero or
-;; more additional bytes of data, as specified in the length field.
-;; Unused bytes within a reply are not guaranteed to be zero. Every
-;; reply also contains the least sig- nificant 16 bits of the sequence
-;; number of the corresponding request. (this is implicitly assigned)
 
 #+nil
 (array-dimensions (second *my-resp*))
