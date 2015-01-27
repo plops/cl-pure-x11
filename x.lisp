@@ -36,6 +36,22 @@ the data is sent over the stream *s*."
 	 (write-sequence buf *s*)
 	 (force-output *s*)))))
 
+(defun read-response-wait (&key (request-size nil))
+  (let* ((n (or request-size
+		(sb-impl::buffer-tail (sb-impl::fd-stream-ibuf *s*)))) ;; use sbcl internals to check how many bytes came in response
+	 (buf (make-array n
+			  :element-type '(unsigned-byte 8))))
+    (format t "~a~%" (list 'response-length n))
+    (sb-sys:read-n-bytes *s* buf 0 (length buf))
+    buf))
+
+(defun read-response ()
+  (cond ((not (listen *s*))
+	 (error "timeout")
+	 :timeout)
+
+ 	(t  (read-response-wait))))
+
 (defun connect ()
   (defparameter *s*
     (socket-make-stream (let ((s (make-instance 'inet-socket 
@@ -57,17 +73,7 @@ the data is sent over the stream *s*."
     (card16 0)		       ; unused
     )
   (sleep .01)
-  (cond ((not (listen *s*))
-	 (error "timeout")
-	 :timeout)
-
-	;; use sbcl internals to check how many bytes came in response
- 	(t (let* ((n (sb-impl::buffer-tail (sb-impl::fd-stream-ibuf *s*)))
-		  (buf (make-array n
-				   :element-type '(unsigned-byte 8))))
-	     (format t "~a~%" (list 'response-length n))
-	     (sb-sys:read-n-bytes *s* buf 0 (length buf))
-	     (defparameter *resp* buf)))))
+  (setf *resp* (read-response)))
 
 #+nil
 (connect)

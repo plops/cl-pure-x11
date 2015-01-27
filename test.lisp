@@ -5,7 +5,7 @@
           #p"/home/martin/stage/cl-pure-x11/"))
   (asdf:load-system "pure-x11"))
 
-(defpackage :g (:use :pure-x11))
+(defpackage :g (:use  :cl :pure-x11))
 (in-package :g)
 
 #+nil
@@ -22,8 +22,6 @@
 	    (aref a j i 3) 255))) ;; a
   (put-image-big-req a))
 
-
-
 #+nil
 (progn
   (connect)
@@ -36,7 +34,15 @@
 
 #+nil
 (draw-window 0 0 100 100)
-
+#+nil
+(read-response)
+#+nil
+(progn
+  (defparameter *my-resp* nil)
+ (sb-thread:make-thread #'(lambda ()
+			    (setf *my-resp* (list (get-universal-time)
+						  (read-response-wait))))
+			:name "bla"))
 #+nil
 (time
  (dotimes (i 100000)

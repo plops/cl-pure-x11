@@ -7,4 +7,6 @@
    #:big-req-enable
    #:make-window
    #:draw-window
-   #:put-image-big-req))
+   #:put-image-big-req
+   #:read-response
+   #:read-response-wait))
