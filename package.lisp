@@ -18,6 +18,16 @@ new window."
   (draw-window function)
   (query-pointer function)
   (put-image-big-req function)
+
+  (parse-initial-reply function)
+  (read-reply-wait function)
+
+  (*s* variable)
+  (*resource-id-base* variable)
+  (*resource-id-mask* variable)
+  (*root* variable)
+  (*window* variable)
+  
   (@pure-x11-examples section)
   (@pure-x11-internal section))
 
@@ -34,20 +44,3 @@ new window."
   (query-pointer) ;; ask for current mouse cursor position
   => 700, 700, 302, -321
   ```")
-
-#+nil
-(describe @pure-x11-manual)
-
-;; (defpackage :pure-x11
-;;   (:use :cl )
-;;   (:export
-;;    #:connect
-;;    #:parse-initial-reply
-;;    #:query-extension
-;;    #:query-pointer
-;;    #:make-window
-;;    #:draw-window
-;;    #:put-image-big-req
-;;    #:read-reply
-;;    #:read-reply-wait
-;; ))

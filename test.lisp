@@ -10,8 +10,8 @@
 (in-package :g)
 
 #+nil
-(with-open-file (s "/home/martin/stage/cl-pure-x11/README.md" :direction :output :if-exists :supersede :if-does-not-exist :create)
-  (describe @pure-x11-manual s))
+(with-open-file (s "/home/martin/stage/cl-pure-x11/README.html" :direction :output :if-exists :supersede :if-does-not-exist :create)
+  (mgl-pax:document @pure-x11-manual :stream s :format :html))
 
 #+nil
 (let*((w 512)
