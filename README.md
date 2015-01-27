@@ -118,18 +118,32 @@ a new window.
 ## 1 Examples
 
 Let's see the transcript of a real session of someone working
-with `PURE-X11`:
+  with `PURE-X11`:
 
-```cl-transcrip
-(progn ;; open a window and draw a line
-  (connect)
-  (make-window)
-  (draw-window 0 0 100 100))
+\`\`\`cl-transcrip
+  (progn ;; open a window and draw a line
+    (connect)
+    (make-window)
+    (draw-window 0 0 100 100))
 
 (query-pointer) ;; ask for current mouse cursor position
-=> 700, 700, 302, -321
-```
+  => 700, 700, 302, -321
 
+  ;; while a [`*WINDOW*`][40a1] is open, one can copy image data into it
+  ;; like this:
+  (let\*((w 512)
+        (h 512)
+        (c 4)
+        (a (make-array (list h w c)
+	  	       :element-type '(unsigned-byte 8))))
+    (dotimes (j h)
+      (dotimes (i w)
+        (setf (aref a j i 0) (mod i 255)  ;; b
+  	      (aref a j i 1) (mod j 255)  ;; g
+	      (aref a j i 2) 255          ;; r
+	      (aref a j i 3) 255)))       ;; a
+    (put-image-big-req a))
+  \`\`\`
 
 <a name='x-28PURE-X11-3A-40PURE-X11-INTERNAL-20MGL-PAX-3ASECTION-29'></a>
 
