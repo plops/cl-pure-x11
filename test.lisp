@@ -12,7 +12,10 @@
 (in-package :g)
 
 #+nil
-(with-open-file (s "/home/martin/stage/cl-pure-x11/README.md" :direction :output :if-exists :supersede :if-does-not-exist :create)
+(with-open-file (s "/home/martin/stage/cl-pure-x11/README.md"
+		   :direction :output
+		   :if-exists :supersede
+		   :if-does-not-exist :create)
   (mgl-pax:document @pure-x11-manual :stream s :format :markdown))
 
 #+nil

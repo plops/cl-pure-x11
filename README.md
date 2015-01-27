@@ -120,7 +120,7 @@ a new window.
 Let's see the transcript of a real session of someone working
   with `PURE-X11`:
 
-\`\`\`cl-transcrip
+\`\`\`cl-transcript
   (progn ;; open a window and draw a line
     (connect)
     (make-window)
