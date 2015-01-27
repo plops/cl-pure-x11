@@ -47,4 +47,19 @@
 
   (query-pointer) ;; ask for current mouse cursor position
   => 700, 700, 302, -321
+ 
+  ;; while a *WINDOW* is open, one can copy image data into it
+  ;; like this:
+  (let*((w 512)
+        (h 512)
+        (c 4)
+        (a (make-array (list h w c)
+	  	       :element-type '(unsigned-byte 8))))
+    (dotimes (j h)
+      (dotimes (i w)
+        (setf (aref a j i 0) (mod i 255)  ;; b
+  	      (aref a j i 1) (mod j 255)  ;; g
+	      (aref a j i 2) 255          ;; r
+	      (aref a j i 3) 255)))       ;; a
+    (put-image-big-req a))
   ```")
