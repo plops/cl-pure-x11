@@ -36,37 +36,39 @@ the data is sent over the stream *s*."
 	 (write-sequence buf *s*)
 	 (force-output *s*)))))
 
-(defmacro with-reply (r &body body)
-  `(let ((current 0))
-     (labels ((card8 ()
-		(prog1
-		    (aref ,r current)
-		  (incf current)))
-	      (card16 ()
-		(prog1
-		    (+ (aref ,r current)
-		       (* 256 (aref ,r (1+ current))))
-		  (incf current 2)))
-	      (int16 ()
-		(let ((v (card16)))
-		  (if (< v (ash 1 15)) ;; -128 in 8bit: (- (ash 1 7) (ash 1 8))
-		      v
-		      (- v (ash 1 16)))))
-	      (card32 ()
-		(prog1
-		    (+ (aref ,r current)
-		       (* 256 (+ (aref ,r (1+ current))
-				 (* 256 (+ (aref ,r (+ 2 current))
-					   (* 256 (aref ,r (+ 3 current))))))))
-		  (incf current 4)))
-	      (string8 (n)
-		(prog1
-		    (map 'string #'code-char (subseq ,r current
-						     (+ current n)))
+(defmacro with-reply (buf &body body)
+  (let ((r (gensym)))
+    `(let ((,r ,buf)
+	   (current 0))
+       (labels ((card8 ()
+		  (prog1
+		      (aref ,r current)
+		    (incf current)))
+		(card16 ()
+		  (prog1
+		      (+ (aref ,r current)
+			 (* 256 (aref ,r (1+ current))))
+		    (incf current 2)))
+		(int16 ()
+		  (let ((v (card16)))
+		    (if (< v (ash 1 15)) ;; -128 in 8bit: (- (ash 1 7) (ash 1 8))
+			v
+			(- v (ash 1 16)))))
+		(card32 ()
+		  (prog1
+		      (+ (aref ,r current)
+			 (* 256 (+ (aref ,r (1+ current))
+				   (* 256 (+ (aref ,r (+ 2 current))
+					     (* 256 (aref ,r (+ 3 current))))))))
+		    (incf current 4)))
+		(string8 (n)
+		  (prog1
+		      (map 'string #'code-char (subseq ,r current
+						       (+ current n)))
+		    (incf current n)))
+		(inc-current (n)
 		  (incf current n)))
-	      (inc-current (n)
-		(incf current n)))
-       ,@body)))
+	 ,@body))))
 
 ;; Every reply contains a 32-bit length field expressed in units of
 ;; four bytes. Every reply consists of 32 bytes followed by zero or
@@ -77,6 +79,7 @@ the data is sent over the stream *s*."
 
 
 (defun read-reply-wait ()
+  (format t "reading 32 bytes~%")
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
     (sb-sys:read-n-bytes *s* buf 0 (length buf))
@@ -90,6 +93,7 @@ the data is sent over the stream *s*."
 	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
 	      (dotimes (i 32)
 		(setf (aref m i) (aref buf i)))
+	      (format t "reading ~d bytes~%" (* 4 reply-length))
 	      (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))
 	      (values m sequence-number))
 	    (values buf sequence-number))))))
@@ -382,6 +386,7 @@ the server and stores into dynamic variables."
 
 (defun query-extension (name)
   (declare (type string name)) ;; string should be latin iso 1 encoded
+  (format t "query-extension ~a~%" name)
   (let ((n (length name)))
    (with-packet
      (card8 98)				; opcode
@@ -391,7 +396,20 @@ the server and stores into dynamic variables."
      (card16 0) ;; unused
      (string8 name))
    (dotimes (i (pad n))
-     (write-byte 0 *s*)))) ;; FIXME: i should implement reading the response to get the opcodes
+     (write-byte 0 *s*)))
+  (with-reply (read-reply-wait)
+    (let ((reply (card8))
+	  (unused (card8))
+	  (sequence-number (card16))
+	  (reply-length (card32))
+	  (present (card8)) ;; it is actually BOOL
+	  (major-opcode (card8))
+	  (first-event (card8))
+	  (first-error (card8)))
+      (when present
+	major-opcode)))) 
+
+
 
 #+nil
 (query-extension "BIG-REQUESTS")

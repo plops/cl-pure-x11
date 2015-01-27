@@ -26,7 +26,7 @@
 (progn
   (connect)
   (parse-initial-reply pure-x11::*resp*)
-  (query-extension "BIG-REQUESTS")
+  (defparameter *la* (query-extension "BIG-REQUESTS"))
   (big-req-enable)
 
   (make-window)
