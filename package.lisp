@@ -39,14 +39,14 @@
   "Let's see the transcript of a real session of someone working
   with PURE-X11:
 
-  ```cl-transcript
+  ```common-lisp
   (progn ;; open a window and draw a line
     (connect)
     (make-window)
     (draw-window 0 0 100 100))
 
   (query-pointer) ;; ask for current mouse cursor position
-  => 700, 700, 302, -321
+  ;; => 700, 700, 302, -321
  
   ;; while a *WINDOW* is open, one can copy image data into it
   ;; like this:
