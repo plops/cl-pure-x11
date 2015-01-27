@@ -36,6 +36,38 @@ the data is sent over the stream *s*."
 	 (write-sequence buf *s*)
 	 (force-output *s*)))))
 
+(defmacro with-reply (r &body body)
+  `(let ((current 0))
+     (labels ((card8 ()
+		(prog1
+		    (aref ,r current)
+		  (incf current)))
+	      (card16 ()
+		(prog1
+		    (+ (aref ,r current)
+		       (* 256 (aref ,r (1+ current))))
+		  (incf current 2)))
+	      (int16 ()
+		(let ((v (card16)))
+		  (if (< v (ash 1 15)) ;; -128 in 8bit: (- (ash 1 7) (ash 1 8))
+		      v
+		      (- v (ash 1 16)))))
+	      (card32 ()
+		(prog1
+		    (+ (aref ,r current)
+		       (* 256 (+ (aref ,r (1+ current))
+				 (* 256 (+ (aref ,r (+ 2 current))
+					   (* 256 (aref ,r (+ 3 current))))))))
+		  (incf current 4)))
+	      (string8 (n)
+		(prog1
+		    (map 'string #'code-char (subseq ,r current
+						     (+ current n)))
+		  (incf current n)))
+	      (inc-current (n)
+		(incf current n)))
+       ,@body)))
+
 ;; Every reply contains a 32-bit length field expressed in units of
 ;; four bytes. Every reply consists of 32 bytes followed by zero or
 ;; more additional bytes of data, as specified in the length field.
@@ -48,7 +80,7 @@ the data is sent over the stream *s*."
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
     (sb-sys:read-n-bytes *s* buf 0 (length buf))
-    (reply-parser buf
+    (with-reply buf
       (let ((reply (card8))
 	    (unused (card8))
 	    (sequence-number (card16))
@@ -58,7 +90,7 @@ the data is sent over the stream *s*."
 	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
 	      (dotimes (i 32)
 		(setf (aref m i) (aref buf i)))
-	      (sb-sys:read-n-bytes *s* buf 32 (* 4 reply-length))
+	      (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))
 	      (values m sequence-number))
 	    (values buf sequence-number))))))
 
@@ -68,6 +100,38 @@ the data is sent over the stream *s*."
 	 :timeout)
 
  	(t  (read-reply-wait))))
+
+(defun read-reply-unknown-size ()
+  (cond ((not (listen *s*))
+	 (error "timeout")
+	 :timeout)
+ 	(t  (let* ((n (sb-impl::buffer-tail (sb-impl::fd-stream-ibuf *s*))) ;; use sbcl internals to check how many bytes came in response
+		   (buf (make-array n
+				    :element-type '(unsigned-byte 8))))
+	      (format t "~a~%" (list 'response-length n))
+	      (sb-sys:read-n-bytes *s* buf 0 (length buf))
+	      buf))))
+
+(defun read-connection-response ()
+;; Upon connection the server responds with one of three replies. The
+;; first 8 bytes are similar in those. The card16 at index six
+;; contains the length in 4-byte units
+  (let ((buf (make-array 8 :element-type '(unsigned-byte 8))))
+   (with-reply buf
+	(let ((success-state (card8))
+	      (length-of-reason (card8))
+	      (protocol-major-version (card16))
+	      (protocol-minor-version (card16))
+	      (reply-length (card16)))
+	  (let ((m (make-array (+ 8 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
+	    (dotimes (i 8)
+	      (setf (aref m i) (aref buf i)))
+	    (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))
+	    (ecase success-state
+	    (0 (error "failed"))
+	    (2 (error "authenticate"))
+	    (1
+	     )))))))
 
 (defun connect ()
   (defparameter *s*
@@ -108,37 +172,12 @@ the data is sent over the stream *s*."
 #+nil
 (pad 8)
 
-(defmacro reply-parser (r &body body)
-  `(let ((current 0))
-     (labels ((card8 ()
-		(prog1
-		    (aref ,r current)
-		  (incf current)))
-	      (card16 ()
-		(prog1
-		    (+ (aref ,r current)
-		       (* 256 (aref ,r (1+ current))))
-		  (incf current 2)))
-	      (card32 ()
-		(prog1
-		    (+ (aref ,r current)
-		       (* 256 (+ (aref ,r (1+ current))
-				 (* 256 (+ (aref ,r (+ 2 current))
-					   (* 256 (aref ,r (+ 3 current))))))))
-		  (incf current 4)))
-	      (string8 (n)
-		(prog1
-		    (map 'string #'code-char (subseq *resp* current
-						     (+ current n)))
-		  (incf current n)))
-	      (inc-current (n)
-		(incf current n)))
-       ,@body)))
+
 
 (defun parse-initial-reply (r)
   "Extracts *root*, *resource-id-{base,mask}* from first response of
 the server and stores into dynamic variables."
-  (reply-parser r
+  (with-reply r
    (let* ((success (card8))
 	  (unused (card8))
 	  (protocol-major (card16))
@@ -231,37 +270,7 @@ the server and stores into dynamic variables."
 					'colormap-entries colormap-entries)))))))))))
 
 
-(defmacro with-reply (r &body body)
-  `(let ((current 0))
-     (labels ((card8 ()
-		(prog1
-		    (aref ,r current)
-		  (incf current)))
-	      (card16 ()
-		(prog1
-		    (+ (aref ,r current)
-		       (* 256 (aref ,r (1+ current))))
-		  (incf current 2)))
-	      (int16 ()
-		(let ((v (card16)))
-		  (if (< v (ash 1 15)) ;; -128 in 8bit: (- (ash 1 7) (ash 1 8))
-		      v
-		      (- v (ash 1 16)))))
-	      (card32 ()
-		(prog1
-		    (+ (aref ,r current)
-		       (* 256 (+ (aref ,r (1+ current))
-				 (* 256 (+ (aref ,r (+ 2 current))
-					   (* 256 (aref ,r (+ 3 current))))))))
-		  (incf current 4)))
-	      (string8 (n)
-		(prog1
-		    (map 'string #'code-char (subseq ,r current
-						     (+ current n)))
-		  (incf current n)))
-	      (inc-current (n)
-		(incf current n)))
-       ,@body)))
+
 
 
 
