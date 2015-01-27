@@ -40,7 +40,7 @@ the data is sent over the stream *s*."
 ;; four bytes. Every reply consists of 32 bytes followed by zero or
 ;; more additional bytes of data, as specified in the length field.
 ;; Unused bytes within a reply are not guaranteed to be zero. Every
-;; reply also contains the least sig- nificant 16 bits of the sequence
+;; reply also contains the least significant 16 bits of the sequence
 ;; number of the corresponding request. (this is implicitly assigned)
 
 
@@ -48,7 +48,19 @@ the data is sent over the stream *s*."
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
     (sb-sys:read-n-bytes *s* buf 0 (length buf))
-    buf))
+    (reply-parser buf
+      (let ((reply (card8))
+	    (unused (card8))
+	    (sequence-number (card16))
+	    (reply-length (card32)))
+	(declare (ignorable reply unused))
+	(if (< 0 reply-length)
+	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
+	      (dotimes (i 32)
+		(setf (aref m i) (aref buf i)))
+	      (sb-sys:read-n-bytes *s* buf 32 (* 4 reply-length))
+	      (values m sequence-number))
+	    (values buf sequence-number))))))
 
 (defun read-reply ()
   (cond ((not (listen *s*))
@@ -69,7 +81,7 @@ the data is sent over the stream *s*."
 			:output t
 			:buffering :none))
   (with-packet
-    (card8 #x6c)	       ; LE
+    (card8 #x6c)	       ; little endian
     (card8 0)		       ; unused
     (card16 11)		       ; major
     (card16 0)		       ; minor
@@ -77,7 +89,6 @@ the data is sent over the stream *s*."
     (card16 0)		       ; length of authorization protocol data
     (card16 0)		       ; unused
     )
-  (sleep .01)
   (setf *resp* (read-reply-wait)))
 
 #+nil
@@ -97,123 +108,127 @@ the data is sent over the stream *s*."
 #+nil
 (pad 8)
 
+(defmacro reply-parser (r &body body)
+  `(let ((current 0))
+     (labels ((card8 ()
+		(prog1
+		    (aref ,r current)
+		  (incf current)))
+	      (card16 ()
+		(prog1
+		    (+ (aref ,r current)
+		       (* 256 (aref ,r (1+ current))))
+		  (incf current 2)))
+	      (card32 ()
+		(prog1
+		    (+ (aref ,r current)
+		       (* 256 (+ (aref ,r (1+ current))
+				 (* 256 (+ (aref ,r (+ 2 current))
+					   (* 256 (aref ,r (+ 3 current))))))))
+		  (incf current 4)))
+	      (string8 (n)
+		(prog1
+		    (map 'string #'code-char (subseq *resp* current
+						     (+ current n)))
+		  (incf current n)))
+	      (inc-current (n)
+		(incf current n)))
+       ,@body)))
+
 (defun parse-initial-reply (r)
   "Extracts *root*, *resource-id-{base,mask}* from first response of
 the server and stores into dynamic variables."
-  (let ((current 0))
-   (labels ((card8 ()
-	      (prog1
-		  (aref r current)
-		(incf current)))
-	    (card16 ()
-	      (prog1
-		  (+ (aref r current)
-		     (* 256 (aref r (1+ current))))
-		(incf current 2)))
-	    (card32 ()
-	      (prog1
-		  (+ (aref r current)
-		     (* 256 (+ (aref r (1+ current))
-			       (* 256 (+ (aref r (+ 2 current))
-					 (* 256 (aref r (+ 3 current))))))))
-		(incf current 4)))
-	    (string8 (n)
-	      (prog1
-		  (map 'string #'code-char (subseq *resp* current
-						   (+ current n)))
-		(incf current n)))
-	    (inc-current (n)
-	      (incf current n)))
-       (let* ((success (card8))
-	      (unused (card8))
-	      (protocol-major (card16))
-	      (protocol-minor (card16))
-	      (length (card16))
-	      (release (card32))
-	      (resource-id-base (card32))
-	      (resource-id-mask (card32))
-	      (motion-buffer-size (card32))
-	      (length-of-vendor (card16))
-	      (maximum-request-length (card16))
-	      (number-of-screens (card8))
-	      (number-of-formats (card8))
-	      (image-byte-order (card8))
-	      (bitmap-format-bit-order (card8))
-	      (bitmap-format-scanline-unit (card8))
-	      (bitmap-format-scanline-pad (card8))
-	      (min-keycode (card8))
-	      (max-keycode (card8))
-	      (unused2 (card32))
-	      (vendor (string8 length-of-vendor))
-	      (unused3 (inc-current (pad length-of-vendor)))
-	      )
-	 (unless (= 1 success)
-	       (error "connection didn't succeed."))
-	 (defparameter *resource-id-base* resource-id-base)
-	 (defparameter *resource-id-mask* resource-id-mask)
-	 (format t "~a~%" (list 'major protocol-major
-				'minor protocol-minor
-				'vendor vendor 'release release
-				'resource-id-base resource-id-base
-				'resource-id-mask resource-id-mask
-				'motion-buffer-size motion-buffer-size
-				'number-of-screens number-of-screens))
-	 (dotimes (i number-of-formats)
+  (reply-parser r
+   (let* ((success (card8))
+	  (unused (card8))
+	  (protocol-major (card16))
+	  (protocol-minor (card16))
+	  (length (card16))
+	  (release (card32))
+	  (resource-id-base (card32))
+	  (resource-id-mask (card32))
+	  (motion-buffer-size (card32))
+	  (length-of-vendor (card16))
+	  (maximum-request-length (card16))
+	  (number-of-screens (card8))
+	  (number-of-formats (card8))
+	  (image-byte-order (card8))
+	  (bitmap-format-bit-order (card8))
+	  (bitmap-format-scanline-unit (card8))
+	  (bitmap-format-scanline-pad (card8))
+	  (min-keycode (card8))
+	  (max-keycode (card8))
+	  (unused2 (card32))
+	  (vendor (string8 length-of-vendor))
+	  (unused3 (inc-current (pad length-of-vendor)))
+	  )
+     (unless (= 1 success)
+       (error "connection didn't succeed."))
+     (defparameter *resource-id-base* resource-id-base)
+     (defparameter *resource-id-mask* resource-id-mask)
+     (format t "~a~%" (list 'major protocol-major
+			    'minor protocol-minor
+			    'vendor vendor 'release release
+			    'resource-id-base resource-id-base
+			    'resource-id-mask resource-id-mask
+			    'motion-buffer-size motion-buffer-size
+			    'number-of-screens number-of-screens))
+     (dotimes (i number-of-formats)
+       (let ((depth (card8))
+	     (bpp (card8))
+	     (scanline-pad (card8))
+	     (unused (inc-current 5)))
+	 (format t "~a~%" (list 'format 'depth depth 'bpp bpp
+				'scanline-pad scanline-pad))))
+     (dotimes (i number-of-screens)
+       (let ((root (card32))
+	     (default-colormap (card32))
+	     (white-pixel (card32))
+	     (black-pixel (card32))
+	     (current-input-mask (card32))
+	     (width (card16))
+	     (height (card16))
+	     (width-in-mm (card16))
+	     (height-in-mm (card16))
+	     (min-installed-maps (card16))
+	     (max-installed-maps (card16))
+	     (root-visual (card32))
+	     (backing-stores (card8))
+	     (save-unders (card8))
+	     (root-depth (card8))
+	     (number-of-allowed-depths (card8)))
+	 (defparameter *root* root)
+	 (format t "~a~%" (list 'root root
+				'w width
+				'h height
+				'white white-pixel
+				'black black-pixel
+				'current-input-mask current-input-mask
+				'backing-stores backing-stores
+				'save-unders save-unders
+				'root-depth root-depth
+				'number-of-allowed-depths 
+				number-of-allowed-depths))
+	 (dotimes (i number-of-allowed-depths)
 	   (let ((depth (card8))
-		 (bpp (card8))
-		 (scanline-pad (card8))
-		 (unused (inc-current 5)))
-	     (format t "~a~%" (list 'format 'depth depth 'bpp bpp
-				    'scanline-pad scanline-pad))))
-	 (dotimes (i number-of-screens)
-	   (let ((root (card32))
-		 (default-colormap (card32))
-		 (white-pixel (card32))
-		 (black-pixel (card32))
-		 (current-input-mask (card32))
-		 (width (card16))
-		 (height (card16))
-		 (width-in-mm (card16))
-		 (height-in-mm (card16))
-		 (min-installed-maps (card16))
-		 (max-installed-maps (card16))
-		 (root-visual (card32))
-		 (backing-stores (card8))
-		 (save-unders (card8))
-		 (root-depth (card8))
-		 (number-of-allowed-depths (card8)))
-	     (defparameter *root* root)
-	     (format t "~a~%" (list 'root root
-				    'w width
-				    'h height
-				    'white white-pixel
-				    'black black-pixel
-				    'current-input-mask current-input-mask
-				    'backing-stores backing-stores
-				    'save-unders save-unders
-				    'root-depth root-depth
-				    'number-of-allowed-depths 
-				    number-of-allowed-depths))
-	     (dotimes (i number-of-allowed-depths)
-	       (let ((depth (card8))
-		     (unused (card8))
-		     (number-of-visuals (card16))
-		     (unused2 (card32))
-		     )
-		 (format t "~a~%" (list 'allowed-depth depth
-					'nr-visuals number-of-visuals))
-		 (dotimes (j number-of-visuals)
-		   (let ((visual-id (card32))
-			 (class (card8))
-			 (bits-per-rgb (card8))
-			 (colormap-entries (card16))
-			 (red-mask (card32))
-			 (green-mask (card32))
-			 (blue-mask (card32))
-			 (unused (card32)))
-		     (format t "~a~%" (list 'visual j 'id visual-id
-					    'class class
-					    'colormap-entries colormap-entries))))))))))))
+		 (unused (card8))
+		 (number-of-visuals (card16))
+		 (unused2 (card32))
+		 )
+	     (format t "~a~%" (list 'allowed-depth depth
+				    'nr-visuals number-of-visuals))
+	     (dotimes (j number-of-visuals)
+	       (let ((visual-id (card32))
+		     (class (card8))
+		     (bits-per-rgb (card8))
+		     (colormap-entries (card16))
+		     (red-mask (card32))
+		     (green-mask (card32))
+		     (blue-mask (card32))
+		     (unused (card32)))
+		 (format t "~a~%" (list 'visual j 'id visual-id
+					'class class
+					'colormap-entries colormap-entries)))))))))))
 
 
 (defmacro with-reply (r &body body)

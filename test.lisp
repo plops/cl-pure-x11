@@ -41,7 +41,7 @@
   (defparameter *my-resp* nil)
  (sb-thread:make-thread #'(lambda ()
 			    (setf *my-resp* (list (get-universal-time)
-						  (read-reply-wait))))
+						  (multiple-value-list (read-reply-wait)))))
 			:name "bla"))
 
 
