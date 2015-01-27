@@ -43,6 +43,16 @@
 			    (setf *my-resp* (list (get-universal-time)
 						  (read-response-wait))))
 			:name "bla"))
+
+;; Every reply contains a 32-bit length field expressed in units of
+;; four bytes. Every reply consists of 32 bytes followed by zero or
+;; more additional bytes of data, as specified in the length field.
+;; Unused bytes within a reply are not guaranteed to be zero. Every
+;; reply also contains the least sig- nificant 16 bits of the sequence
+;; number of the corresponding request.
+
+#+nil
+(array-dimensions (second *my-resp*))
 #+nil
 (time
  (dotimes (i 100000)

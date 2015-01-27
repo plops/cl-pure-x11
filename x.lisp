@@ -73,7 +73,7 @@ the data is sent over the stream *s*."
     (card16 0)		       ; unused
     )
   (sleep .01)
-  (setf *resp* (read-response)))
+  (setf *resp* (read-response-wait)))
 
 #+nil
 (connect)
