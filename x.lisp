@@ -10,6 +10,8 @@
 (defparameter *resource-id-base* nil)
 (defparameter *resource-id-mask* nil)
 
+(defparameter *big-request-opcode* 133)
+
 (defmacro with-packet (&body body)
   "Write values into a list of bytes with card{8,16,32}. Finally all
 the data is sent over the stream *s*."
@@ -159,7 +161,8 @@ the data is sent over the stream *s*."
     (card16 0)		       ; unused
     )
   (setf *resp* (read-connection-response))
-  (parse-initial-reply *resp*))
+  (parse-initial-reply *resp*)
+  (setf *big-request-opcode* (query-extension "BIG-REQUESTS")))
 
 #+nil
 (connect)
@@ -382,7 +385,19 @@ the server and stores into dynamic variables."
     (card8 0)				; unused
     (card16 2)				; length
     (card32 *window*)			; window
-    ))
+    )
+  (with-reply (read-reply-wait)
+    (let ((reply (card8))
+	  (same-screen (card8))
+	  (sequence-number (card16))
+	  (reply-length (card32))
+	  (root (card32))
+	  (child (card32))
+	  (root-x (card16))
+	  (root-y (card16))
+	  (win-x (card16))
+	  (win-y (card16)))
+      (values root-x root-y win-x win-y))))
 
 (defun query-extension (name)
   (declare (type string name)) ;; string should be latin iso 1 encoded
@@ -406,8 +421,7 @@ the server and stores into dynamic variables."
 	  (major-opcode (card8))
 	  (first-event (card8))
 	  (first-error (card8)))
-      (when present
-	major-opcode)))) 
+      major-opcode))) 
 
 
 
@@ -416,7 +430,7 @@ the server and stores into dynamic variables."
                   
 (defun big-req-enable ()
   (with-packet
-    (card8 133)				; opcode
+    (card8 *big-request-opcode*)				; opcode
     (card8 0)				; bigreq opcode
     (card16 1)				; length
     ))

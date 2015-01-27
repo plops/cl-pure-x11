@@ -25,10 +25,6 @@
 #+nil
 (progn
   (connect)
-  (parse-initial-reply pure-x11::*resp*)
-  (defparameter *la* (query-extension "BIG-REQUESTS"))
-  (big-req-enable)
-
   (make-window)
   (draw-window 0 0 100 100))
 
