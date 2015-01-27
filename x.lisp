@@ -378,7 +378,6 @@ the server and stores into dynamic variables."
 	(dolist (p s)
 	  (card16 p))))))
 
-
 (defun query-pointer ()
   (with-packet
     (card8 38)				; opcode

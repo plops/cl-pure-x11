@@ -4,9 +4,11 @@
    #:connect
    #:parse-initial-reply
    #:query-extension
+   #:query-pointer
    #:big-req-enable
    #:make-window
    #:draw-window
    #:put-image-big-req
    #:read-reply
-   #:read-reply-wait))
+   #:read-reply-wait
+))

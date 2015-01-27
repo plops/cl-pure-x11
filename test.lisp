@@ -29,6 +29,9 @@
   (draw-window 0 0 100 100))
 
 #+nil
+(query-pointer)
+
+#+nil
 (draw-window 0 0 100 100)
 #+nil
 (read-reply)
