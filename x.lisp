@@ -13,8 +13,8 @@
 (defparameter *big-request-opcode* 133)
 
 (defsection @pure-x11-internal (:title "Internal details")
-  "I used http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf as a
-  reference to implement the X protocol. There are requests and
+  "I used <http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf> as
+  a reference to implement the X protocol. There are requests and
   replys. Requests are sent from the Lisp code to the X Server and
   replys are read back. I implemented several versions of functions
   for reading from the socket: blocking, non-blocking and one that
