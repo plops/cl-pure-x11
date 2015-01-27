@@ -1,4 +1,6 @@
-; (ql:quickload :mgl-pax)
+#+nil
+(ql:quickload :mgl-pax)
+;;(ql:quickload "split-sequence")
 (eval-when (:execute :load-toplevel :compile-toplevel)
   (setf asdf:*central-registry*
         '(*default-pathname-defaults*
@@ -10,8 +12,8 @@
 (in-package :g)
 
 #+nil
-(with-open-file (s "/home/martin/stage/cl-pure-x11/README.html" :direction :output :if-exists :supersede :if-does-not-exist :create)
-  (mgl-pax:document @pure-x11-manual :stream s :format :html))
+(with-open-file (s "/home/martin/stage/cl-pure-x11/README.md" :direction :output :if-exists :supersede :if-does-not-exist :create)
+  (mgl-pax:document @pure-x11-manual :stream s :format :markdown))
 
 #+nil
 (let*((w 512)
