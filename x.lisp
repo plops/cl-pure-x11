@@ -119,16 +119,21 @@ the data is sent over the stream *s*."
 		  (incf current n)))
 	 ,@body))))
 
-;; Every reply contains a 32-bit length field expressed in units of
-;; four bytes. Every reply consists of 32 bytes followed by zero or
-;; more additional bytes of data, as specified in the length field.
-;; Unused bytes within a reply are not guaranteed to be zero. Every
-;; reply also contains the least significant 16 bits of the sequence
-;; number of the corresponding request. (this is implicitly assigned)
 
 
 (defun read-reply-wait ()
-  (format t "reading 32 bytes~%")
+  "The protocol specifcation states:
+
+Every reply contains a 32-bit length field expressed in units of
+four bytes. Every reply consists of 32 bytes followed by zero or
+more additional bytes of data, as specified in the length field.
+Unused bytes within a reply are not guaranteed to be zero. Every
+reply also contains the least significant 16 bits of the sequence
+number of the corresponding request. (this is implicitly assigned)
+
+This code first reads 32 bytes from the socket *s*. It parses the
+reply length and if necessary reads the rest of the reply packet.
+"
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
     (sb-sys:read-n-bytes *s* buf 0 (length buf))
@@ -142,7 +147,6 @@ the data is sent over the stream *s*."
 	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
 	      (dotimes (i 32)
 		(setf (aref m i) (aref buf i)))
-	      (format t "reading ~d bytes~%" (* 4 reply-length))
 	      (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))
 	      (values m sequence-number))
 	    (values buf sequence-number))))))
@@ -188,6 +192,12 @@ the data is sent over the stream *s*."
 	    (1 m)))))))
 
 (defun connect ()
+  "Initiate the connection with the X server. Use little endian, parse
+the servers initial response to obtain *root* and
+*resource-id-{base,mask}* (for creating new window ids). Enable big
+requests (which just means that for some requests you can send zero in
+the 16-bit length field and use an additional 32-bit length field for
+the request instead)."
   (defparameter *s*
     (socket-make-stream (let ((s (make-instance 'inet-socket 
 						:type :stream 
@@ -209,7 +219,7 @@ the data is sent over the stream *s*."
     )
   (setf *resp* (read-connection-response))
   (parse-initial-reply *resp*)
-  (setf *big-request-opcode* (query-extension "BIG-REQUESTS")))
+  (big-requests-enable))
 
 #+nil
 (connect)
@@ -361,7 +371,10 @@ the server and stores into dynamic variables."
 
 
 
-(defun make-window (&key (width 512) (height 512))
+(defun make-window (&key (width 512) (height 512) (x 0) (y 0))
+  "Create a window with size WIDTH x HEIGHT at position (X Y) using
+*root*. The window id is generated using *RESOURCE-ID-BASE* and
+*RESOURCE-ID-MASK* and returned."
   (let* ((window (logior *resource-id-base* 
 			 (logand *resource-id-mask* 1)))
 	 (gc (logior *resource-id-base* 
@@ -374,8 +387,8 @@ the server and stores into dynamic variables."
       (card16 13)		       ; length
       (card32 window)		       ; wid
       (card32 *root*)		       ;parent
-      (card16 101)		       ;x
-      (card16 102)		       ;y
+      (card16 x)		       ;x
+      (card16 y)		       ;y
       (card16 width)		       ;w
       (card16 height)		       ;h
       (card16 1)		       ; border
@@ -401,9 +414,11 @@ the server and stores into dynamic variables."
       (card8 0)				; unused
       (card16 2)			; length
       (card32 window)			; window
-      )))
+      )
+    window))
 
 (defun draw-window (x1 y1 x2 y2)
+  "Draw a line from (x1 y1) to (x2 y2) in *WINDOW*."
   (declare ((unsigned-byte 16) x1 y1 x2 y2))
   (with-packet
     (card8 61)				; opcode clear-area
@@ -426,6 +441,8 @@ the server and stores into dynamic variables."
 	  (card16 p))))))
 
 (defun query-pointer ()
+  "Ask the X server for the current cursor position. Returns the 4
+multiple values (values root-x root-y win-x win-y)."
   (with-packet
     (card8 38)				; opcode
     (card8 0)				; unused
@@ -446,6 +463,8 @@ the server and stores into dynamic variables."
       (values root-x root-y win-x win-y))))
 
 (defun query-extension (name)
+  "Query the X server for the string NAME. I use this to obtain the
+opcode to enable BIG-REQUESTS."
   (declare (type string name)) ;; string should be latin iso 1 encoded
   (format t "query-extension ~a~%" name)
   (let ((n (length name)))
@@ -474,7 +493,11 @@ the server and stores into dynamic variables."
 #+nil
 (query-extension "BIG-REQUESTS")
                   
-(defun big-req-enable ()
+(defun big-requests-enable ()
+  "If it hasn't been done so far, obtain the opcode for BIG-REQUESTS
+and then issue an enable request."
+  (unless *big-request-opcode*
+    (setf *big-request-opcode* (query-extension "BIG-REQUESTS")))
   (with-packet
     (card8 *big-request-opcode*)				; opcode
     (card8 0)				; bigreq opcode
@@ -482,6 +505,9 @@ the server and stores into dynamic variables."
     ))
 
 (defun put-image-big-req (img)
+  "Create a PutImage request to write the 3D array IMG with
+dimensions (h w c) as a WxH image with 32 bits per pixel into *WINDOW*
+using *GC*."
   (declare ((simple-array (unsigned-byte 8) 3) img))
   (destructuring-bind (h w c)
       (array-dimensions img)

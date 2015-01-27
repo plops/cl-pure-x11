@@ -27,6 +27,8 @@ new window."
   (*resource-id-mask* variable)
   (*root* variable)
   (*window* variable)
+
+  (big-requests-enable function)
   
   (@pure-x11-examples section)
   (@pure-x11-internal section))
