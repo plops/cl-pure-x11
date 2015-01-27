@@ -113,25 +113,26 @@ the data is sent over the stream *s*."
 	      buf))))
 
 (defun read-connection-response ()
-;; Upon connection the server responds with one of three replies. The
-;; first 8 bytes are similar in those. The card16 at index six
-;; contains the length in 4-byte units
+  ;; Upon connection the server responds with one of three replies. The
+  ;; first 8 bytes are similar in those. The card16 at index six
+  ;; contains the length in 4-byte units
   (let ((buf (make-array 8 :element-type '(unsigned-byte 8))))
-   (with-reply buf
-	(let ((success-state (card8))
-	      (length-of-reason (card8))
-	      (protocol-major-version (card16))
-	      (protocol-minor-version (card16))
-	      (reply-length (card16)))
-	  (let ((m (make-array (+ 8 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
-	    (dotimes (i 8)
-	      (setf (aref m i) (aref buf i)))
-	    (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))
-	    (ecase success-state
+    (sb-sys:read-n-bytes *s* buf 0 (length buf))
+    (with-reply buf
+      (let ((success-state (card8))
+	    (length-of-reason (card8))
+	    (protocol-major-version (card16))
+	    (protocol-minor-version (card16))
+	    (reply-length (card16)))
+	(format t "~a" (list success-state length-of-reason protocol-major-version protocol-minor-version))
+	(let ((m (make-array (+ 8 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
+	  (dotimes (i 8)
+	    (setf (aref m i) (aref buf i)))
+	  (sb-sys:read-n-bytes *s* m 8 (* 4 reply-length))
+	  (ecase success-state
 	    (0 (error "failed"))
 	    (2 (error "authenticate"))
-	    (1
-	     )))))))
+	    (1 m)))))))
 
 (defun connect ()
   (defparameter *s*
@@ -153,7 +154,8 @@ the data is sent over the stream *s*."
     (card16 0)		       ; length of authorization protocol data
     (card16 0)		       ; unused
     )
-  (setf *resp* (read-reply-wait)))
+  (setf *resp* (read-connection-response))
+  (parse-initial-reply *resp*))
 
 #+nil
 (connect)
