@@ -5,6 +5,11 @@
   :author "Martin Kielhorn <kielhorn.martin@gmail.com>"
   :licence "GPL"
   :depends-on (:sb-bsd-sockets :mgl-pax)
+  ;; note the dependency of mgl-pax is only for creating the
+  ;; documentation.  if an appropriate defpackage call is placed in
+  ;; package.lisp and a few of its definitions removed, this
+  ;; dependency can be ommited (it depends on quite a few things
+  ;; itself).
   :components ((:file "package")
                (:file "x" :depends-on ("package"))
                (:file "shm" :depends-on ("package" "x"))))
