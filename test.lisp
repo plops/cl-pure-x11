@@ -1,4 +1,4 @@
-
+; (ql:quickload :mgl-pax)
 (eval-when (:execute :load-toplevel :compile-toplevel)
   (setf asdf:*central-registry*
         '(*default-pathname-defaults*
