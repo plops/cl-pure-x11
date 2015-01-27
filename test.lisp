@@ -49,7 +49,7 @@
 ;; more additional bytes of data, as specified in the length field.
 ;; Unused bytes within a reply are not guaranteed to be zero. Every
 ;; reply also contains the least sig- nificant 16 bits of the sequence
-;; number of the corresponding request.
+;; number of the corresponding request. (this is implicitly assigned)
 
 #+nil
 (array-dimensions (second *my-resp*))
