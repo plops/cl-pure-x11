@@ -504,11 +504,12 @@ and then issue an enable request."
     (card16 1)				; length
     ))
 
-(defun put-image-big-req (img)
+(defun put-image-big-req (img &key (dst-x 0) (dst-y 0))
   "Create a PutImage request to write the 3D array IMG with
 dimensions (h w c) as a WxH image with 32 bits per pixel into *WINDOW*
 using *GC*."
-  (declare ((simple-array (unsigned-byte 8) 3) img))
+  (declare (type (simple-array (unsigned-byte 8) 3) img)
+	   (type (unsigned-byte 16) dst-x dst-y))
   (destructuring-bind (h w c)
       (array-dimensions img)
    (let*((img1 (sb-ext:array-storage-vector img))
@@ -523,8 +524,8 @@ using *GC*."
        (card32 *gc*)
        (card16 w)
        (card16 h)
-       (card16 0) ; dst-x
-       (card16 0) ; dst-y
+       (card16 dst-x) ; dst-x
+       (card16 dst-y) ; dst-y
        (card8 0) ; left-pad
        (card8 24) ; depth
        (card16 0) ; unused
