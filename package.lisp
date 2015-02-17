@@ -1,14 +1,25 @@
+#+generate-pure-x11-doc
 (mgl-pax:define-package :pure-x11
-  (:documentation "socket based lisp-only interface to X11")
+  (:documentation "socket based lisp-only interface to X11. See
+  PURE-X11:@PURE-X11-MANUAL.")
   (:use #:common-lisp #:sb-bsd-sockets #:mgl-pax))
+#-generate-pure-x11-doc
+(defpackage :pure-x11
+  (:documentation "socket based lisp-only interface to X11")
+  (:use #:common-lisp #:sb-bsd-sockets)
+  (:export #:connect
+	   #:make-window
+	   #:draw-window
+	   #:query-pointer
+	   #:put-image-big-req))
 
 (in-package :pure-x11)
 
+#+generate-pure-x11-doc
 (defsection @pure-x11-manual (:title "Pure X11 manual")
   "This package provides a socket based lisp-only interface to X11. It
   started as an experiment but as I added support for XPutImage using
-  BIG-REQUESTS it now seems more useful to me than CLX. See
-  PURE-X11:@PURE-X11-MANUAL. 
+  BIG-REQUESTS it now seems more useful to me than CLX. 
 
   Connect will send a request to open a connection to the X-Server and
   parses its response to obtain the constants *RESOURCE-ID-BASE*,
@@ -35,6 +46,7 @@
   (@pure-x11-examples section)
   (@pure-x11-internal section))
 
+#+generate-pure-x11-doc
 (defsection @pure-x11-examples (:title "Examples")
   "Let's see the transcript of a real session of someone working
   with PURE-X11:
