@@ -417,9 +417,7 @@ the server and stores into dynamic variables."
       )
     window))
 
-(defun draw-window (x1 y1 x2 y2)
-  "Draw a line from (x1 y1) to (x2 y2) in *WINDOW*."
-  (declare ((unsigned-byte 16) x1 y1 x2 y2))
+(defun clear-area ()
   (with-packet
     (card8 61)				; opcode clear-area
     (card8 0)				; exposures
@@ -429,7 +427,13 @@ the server and stores into dynamic variables."
     (card16 0)				; y 
     (card16 0)				; w 
     (card16 0)				; h
-   
+   ))
+
+(defun draw-window (x1 y1 x2 y2)
+  "Draw a line from (x1 y1) to (x2 y2) in *WINDOW*."
+  (declare ((unsigned-byte 16) x1 y1 x2 y2))
+  (with-packet
+    
     (let ((segs (list (list x1 y1 x2 y2))))
       (card8 66)			  ; opcode poly-segment
       (card8 0)				  ; unused
@@ -439,6 +443,23 @@ the server and stores into dynamic variables."
       (dolist (s segs)
 	(dolist (p s)
 	  (card16 p))))))
+
+#+nil
+(defun poly-segment (segments)
+  "Segments is a list of 4 Numbers. Draw a lines from (x1 y1) to (x2 y2) in *WINDOW*."
+  (declare ((unsigned-byte 16) x1 y1 x2 y2))
+  (with-packet
+    
+    (let ((segs (list (list x1 y1 x2 y2))))
+      (card8 66)			  ; opcode poly-segment
+      (card8 0)				  ; unused
+      (card16 (+ 3 (* 2 (length segs))))  ; length
+      (card32 *window*)			  ; drawable
+      (card32 *gc*)			  ; gc
+      (dolist (s segs)
+	(dolist (p s)
+	  (card16 p))))))
+
 
 (defun query-pointer ()
   "Ask the X server for the current cursor position. Returns the 4
