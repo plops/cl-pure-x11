@@ -192,7 +192,7 @@ reply length and if necessary reads the rest of the reply packet.
 	    (2 (error "authenticate"))
 	    (1 m)))))))
 
-(defun connect ()
+(defun connect (&key (ip #(127 0 0 1)) (port 6000))
   "Initiate the connection with the X server. Use little endian, parse
 the servers initial response to obtain *root* and
 *resource-id-{base,mask}* (for creating new window ids). Enable big
@@ -203,7 +203,7 @@ the request instead)."
     (socket-make-stream (let ((s (make-instance 'inet-socket 
 						:type :stream 
 						:protocol :tcp)))
-			  (socket-connect s #(127 0 0 1) 6000)
+			  (socket-connect s ip port)
 			  s)
 			:element-type '(unsigned-byte 8)
 			:input t
