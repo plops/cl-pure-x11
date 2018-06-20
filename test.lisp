@@ -34,7 +34,7 @@
 
 #+nil
 (progn
-  (connect)
+  (connect :port 6000)
   (make-window)
   (draw-window 0 0 100 100))
 

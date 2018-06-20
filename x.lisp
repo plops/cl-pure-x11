@@ -16,10 +16,10 @@
 (defsection @pure-x11-internal (:title "Internal details")
   "I used <http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf> as
   a reference to implement the X protocol. There are requests and
-  replys. Requests are sent from the Lisp code to the X Server and
-  replys are read back. I implemented several versions of functions
+  replies. Requests are sent from the Lisp code to the X Server and
+  replies are read back. I implemented several versions of functions
   for reading from the socket: blocking, non-blocking and one that
-  uses SBCL interals to read everything that is currently in the
+  uses SBCL internals to read everything that is currently in the
   buffer. Of those, I strive to only use the blocking READ-REPLY-WAIT,
   as this is the only one which will give robust code.
 
@@ -28,12 +28,12 @@
   STRING8. I use the macro WITH-PACKET to create a request and
   WITH-REPLY to parse a response. Both define a local function for
   each type that will write/return a properly constructed binary
-  packet/parsed Common Lisp value to/from the stream, while
+  packet/parsed Common Lisp value to/from the stream while
   maintaining a counter to keep track of the currently written byte
   position.
 
   The following function QUERY-POINTER can act as a simple
-  example. First a query pointer request is constructed and sent using
+  example. First, a query pointer request is constructed and sent using
   WITH-PACKET. Then the reply is read back using READ-REPLY-WAIT and
   parsed inside the macro WITH-REPLY:
 
@@ -123,7 +123,7 @@ the data is sent over the stream *s*."
 
 
 (defun read-reply-wait ()
-  "The protocol specifcation states:
+  "The protocol specification states:
 
 Every reply contains a 32-bit length field expressed in units of
 four bytes. Every reply consists of 32 bytes followed by zero or
@@ -194,8 +194,8 @@ reply length and if necessary reads the rest of the reply packet.
 
 (defun connect (&key (ip #(127 0 0 1)) (port 6000))
   "Initiate the connection with the X server. Use little endian, parse
-the servers initial response to obtain *root* and
-*resource-id-{base,mask}* (for creating new window ids). Enable big
+the servers initial response to obtaining *root* and
+*resource-id-{base, mask}* (for creating new window identifiers). Enable big
 requests (which just means that for some requests you can send zero in
 the 16-bit length field and use an additional 32-bit length field for
 the request instead)."
@@ -242,8 +242,8 @@ the request instead)."
 
 
 (defun parse-initial-reply (r)
-  "Extracts *root*, *resource-id-{base,mask}* from first response of
-the server and stores into dynamic variables."
+  "Extracts *root*, *resource-id-{base, mask}* from the first response
+of the server and stores into dynamic variables."
   (with-reply r
    (let* ((success (card8))
 	  (unused (card8))
