@@ -1,4 +1,4 @@
-;#+nil
+#+nil
 (push :generate-pure-x11-doc cl:*features*)
 (asdf:defsystem pure-x11
   :version "0"
