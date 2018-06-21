@@ -14,3 +14,13 @@
   (connect)
   (make-window)
   (draw-window 0 0 100 100))
+
+(query-pointer)
+
+
+;; p.22 Observer with :after method combination
+;; http://norvig.com/design-patterns/design-patterns.pdf
+
+
+;; https://www.x.org/wiki/guide/debugging/
+;; xrestop shows how much memory clients allocate in xserver
