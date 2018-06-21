@@ -11,6 +11,7 @@
 	   #:make-window
 	   #:draw-window
 	   #:query-pointer
+	   #:imagetext8
 	   #:put-image-big-req))
 
 (in-package :pure-x11)

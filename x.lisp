@@ -239,7 +239,50 @@ the request instead)."
 #+nil
 (pad 8)
 
+(defun parse-expose (r)
+  (with-reply r
+    (let ((code (card8))
+	  (unused (card8))
+	  (sequence-number (card16))
+	  (window (card32))
+	  (x (card16))
+	  (y (card16))
+	  (width (card16))
+	  (height (card16))
+	  (count (card16))
+	  (unused2 (inc-current 14)))
+      (assert (= 12 code))
+      (values sequence-number window x y width height count))))
 
+(defun parse-motion-notify (r)
+  (with-reply r
+    (let ((code (card8))
+	  (detail (card8))
+	  (sequence-number (card16))
+	  (time (card32))
+	  (root-window (card32))
+	  (event-window (card32))
+	  (child-window (card32))
+	  (root-x (card16))
+	  (root-y (card16))
+	  (event-x (card16))
+	  (event-y (card16))
+	  (state (card16))
+	  (same-screen-p (card8))
+	  (unused (card8)))
+      (assert (= 6 code))
+      (values (ecase detail (0 :normal) (1 :hint) (t (error)))
+	      sequence-number
+	      root-window
+	      event-window
+	      child-window
+	      root-x
+	      root-y
+	      event-x
+	      event-y
+	      state
+	      same-screen-p
+	      ))))
 
 (defun parse-initial-reply (r)
   "Extracts *root*, *resource-id-{base, mask}* from the first response
@@ -370,6 +413,41 @@ of the server and stores into dynamic variables."
 ; x11r7proto.pdf p.123 describes request formats
 
 
+(defparameter *set-of-event*
+  '((KeyPress		     #x00000001)            
+    (KeyRelease	             #x00000002)            
+    (ButtonPress	     #x00000004)            
+    (ButtonRelease	     #x00000008)            
+    (EnterWindow	     #x00000010)            
+    (LeaveWindow	     #x00000020)            
+    (PointerMotion	     #x00000040)            
+    (PointerMotionHint	     #x00000080)            
+    (Button1Motion	     #x00000100)            
+    (Button2Motion	     #x00000200)            
+    (Button3Motion	     #x00000400)            
+    (Button4Motion	     #x00000800)            
+    (Button5Motion	     #x00001000)            
+    (ButtonMotion	     #x00002000)            
+    (KeymapState	     #x00004000)            
+    (Exposure		     #x00008000)            
+    (VisibilityChange	     #x00010000)            
+    (StructureNotify	     #x00020000)            
+    (ResizeRedirect	     #x00040000)            
+    (SubstructureNotify      #x00080000)            
+    (SubstructureRedirect    #x00100000)            
+    (FocusChange	     #x00200000)            
+    (PropertyChange	     #x00400000)            
+    (ColormapChange	     #x00800000)            
+    (OwnerGrabButton         #x01000000)))
+
+
+(defun event (es)
+  (flet ((lookup (e)
+	   (cadr (assoc e *set-of-event*))))
+    (if (listp es)
+       (loop for e in es sum
+	    (lookup e))
+       (lookup es))))
 
 
 (defun make-window (&key (width 512) (height 512) (x 0) (y 0))
@@ -399,7 +477,8 @@ of the server and stores into dynamic variables."
       (card32 0)      ; bg
       (card32 #x00ffffff)	   ; border
       (card32 5)		   ; bit-grav center
-      (card32 #x8004)		   ; event-mask button-press  exposure
+      (card32 (event '(PointerMotion ButtonPress Exposure)))
+					; event-mask button-press  exposure
       (card32 #x20)		   ;colormap
    
       (card8 55)			; opcode create-gc
@@ -418,6 +497,8 @@ of the server and stores into dynamic variables."
       )
     window))
 
+
+
 (defun clear-area ()
   (with-packet
     (card8 61)				; opcode clear-area
@@ -428,7 +509,23 @@ of the server and stores into dynamic variables."
     (card16 0)				; y 
     (card16 0)				; w 
     (card16 0)				; h
-   ))
+    ))
+
+(defun imagetext8 (str &key (x 0) (y 0))
+  (let* ((n (length str))
+	 (p (pad n)))
+    (with-packet
+      (card8 76)			; opcode ImageText8
+      (card8 n)          		; length of string
+      (card16 (+ 4 (/ (+ n p) 4)))	; request length
+      (card32 *window*)		; window (drawable)
+      (card32 *gc*)			; gcontext
+      (card16 x)			; x
+      (card16 y)			; y 
+      (string8 str)			; string 
+      (dotimes (i (pad n))
+	(card8 0))			; padding
+      )))
 
 (defun draw-window (x1 y1 x2 y2)
   "Draw a line from (x1 y1) to (x2 y2) in *WINDOW*."

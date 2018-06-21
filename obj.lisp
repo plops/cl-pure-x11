@@ -15,6 +15,22 @@
   (make-window)
   (draw-window 0 0 100 100))
 
+
+(pure-x11::clear-area)
+(draw-window 0 0 120 200)
+(imagetext8 "hello" :x 100 :y 100)
+(dotimes (i 100)
+  (sleep .1)
+  (format nil "~a" (query-pointer)))
+
+(pure-x11::read-reply-unknown-size)
+
+(defparameter *b* (pure-x11::read-reply-unknown-size))
+(pure-x11::parse-expose *b*)
+*b*
+(pure-x11::parse-motion-notify *b*)
+
+
 (query-pointer)
 
 
