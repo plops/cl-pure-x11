@@ -10,10 +10,9 @@
 ;; socat -d -d TCP-LISTEN:6000,fork,bind=localhost UNIX-CONNECT:/tmp/.X11-unix/X0
 ;; https://askubuntu.com/questions/41330/let-xorg-listen-on-tcp-but-only-to-localhost
 
-(progn ;; open a window and draw a line
-  (connect)
-  (make-window)
-  (draw-window 0 0 100 100))
+(connect)
+(make-window)
+(draw-window 0 0 100 100)
 
 
 (pure-x11::clear-area)

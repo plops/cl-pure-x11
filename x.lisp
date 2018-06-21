@@ -479,7 +479,7 @@ of the server and stores into dynamic variables."
       (card32 5)		   ; bit-grav center
       (card32 (event '(PointerMotion ButtonPress Exposure)))
 					; event-mask button-press  exposure
-      (card32 #x20)		   ;colormap
+      (card32 #x0)		   ;colormap
    
       (card8 55)			; opcode create-gc
       (card8 0)				; unused
