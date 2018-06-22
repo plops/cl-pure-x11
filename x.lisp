@@ -483,13 +483,15 @@ of the server and stores into dynamic variables."
   (let* ((window (logior *resource-id-base* 
 			 (logand *resource-id-mask* 1)))
 	 (gc (logior *resource-id-base* 
-		     (logand *resource-id-mask* 2))))
+		     (logand *resource-id-mask* 2)))
+	 (vals '(colormap backing-store event-mask bit-gravity border-pixel background-pixel))
+	 (n (length vals)))
     (defparameter *window* window)
     (defparameter *gc* gc)
     (with-packet 
       (card8 1)			       ; opcode create-window
       (card8 0)			       ; depth
-      (card16 13)		       ; length
+      (card16 (+ 8 n))		       ; length
       (card32 window)		       ; wid
       (card32 *root*)		       ;parent
       (card16 x)		       ;x
@@ -499,13 +501,14 @@ of the server and stores into dynamic variables."
       (card16 1)		       ; border
       (card16 0)		       ; window-class copy-from-parent
       (card32 0)		       ; visual-id copy-from-parent
-      (card32 (value '(colormap event-mask bit-gravity border-pixel background-pixel))) ; #x281a value-mask bg border bit-grav event-mask colormap
-      (card32 0)      ; bg
-      (card32 #x00ffffff)	   ; border
-      (card32 5)		   ; bit-grav center
+      (card32 (value vals)) ; #x281a value-mask bg border bit-grav event-mask colormap
+      (card32 0)			; bg
+      (card32 #x00ffffff)		; border
+      (card32 5)			; bit-grav center
+      (card32 1)  ; backing store when mapped
       (card32 (event '(PointerMotion ButtonPress Exposure)))
 					; event-mask button-press  exposure
-      (card32 #x0)		   ;colormap
+      (card32 #x0)			;colormap
    
       (card8 55)			; opcode create-gc
       (card8 0)				; unused
