@@ -18,6 +18,8 @@
 (pure-x11::clear-area)
 (draw-window 0 0 120 200)
 (imagetext8 "hello" :x 100 :y 100)
+(query-pointer)
+(force-output pure-x11::*s*)
 (dotimes (i 100)
   (sleep .1)
   (format nil "~a" (query-pointer)))

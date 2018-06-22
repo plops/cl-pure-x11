@@ -409,6 +409,32 @@ of the server and stores into dynamic variables."
 			   'win-xy (list win-x win-y)
 			   'mask mask))))
 
+;;https://www.x.org/releases/X11R7.7/doc/xproto/x11protocol.pdf p.142 value-mask
+
+(defparameter *set-of-value-mask*
+    '((background-pixmap	       #x00000001)          
+   (background-pixel	       #x00000002)          
+   (border-pixmap	       #x00000004)          
+   (border-pixel	       #x00000008)          
+   (bit-gravity	       #x00000010)          
+   (win-gravity	       #x00000020)          
+   (backing-store	       #x00000040)          
+   (backing-planes	       #x00000080)          
+   (backing-pixel	       #x00000100)          
+   (override-redirect	       #x00000200)          
+   (save-under	       #x00000400)          
+   (event-mask	       #x00000800)          
+   (do-not-propagate-mask    #x00001000)          
+   (colormap		       #x00002000)          
+   (cursor                   #x00004000)))          
+
+(defun value (es)
+  (flet ((lookup (e)
+	   (cadr (assoc e *set-of-value-mask*))))
+    (if (listp es)
+       (loop for e in es sum
+	    (lookup e))
+       (lookup es))))
 
 ; x11r7proto.pdf p.123 describes request formats
 
@@ -473,7 +499,7 @@ of the server and stores into dynamic variables."
       (card16 1)		       ; border
       (card16 0)		       ; window-class copy-from-parent
       (card32 0)		       ; visual-id copy-from-parent
-      (card32 #x281a) ; value-mask bg border bit-grav event-mask colormap
+      (card32 (value '(colormap event-mask bit-gravity border-pixel background-pixel))) ; #x281a value-mask bg border bit-grav event-mask colormap
       (card32 0)      ; bg
       (card32 #x00ffffff)	   ; border
       (card32 5)		   ; bit-grav center
