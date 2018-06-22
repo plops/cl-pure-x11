@@ -35,6 +35,17 @@
 (query-pointer)
 
 
+;; first i have to sort out the socket handling i have listen
+;; continuously for events and parse them. use a single thread that
+;; listens and sends. use two mailboxes to communicate with the rest
+;; of the program
+
+;; then i need some polygon handling (point in polygon test)
+;; https://cses.fi/book.pdf p. 269 geometry
+;; and datastructures for many objects (quadree or kdtree)
+;; p. 1097 in numerical recipes
+
+
 ;; p.22 Observer with :after method combination
 ;; http://norvig.com/design-patterns/design-patterns.pdf
 
