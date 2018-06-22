@@ -192,23 +192,35 @@ reply length and if necessary reads the rest of the reply packet.
 	    (2 (error "authenticate"))
 	    (1 m)))))))
 
-(defun connect (&key (ip #(127 0 0 1)) (port 6000))
-  "Initiate the connection with the X server. Use little endian, parse
-the servers initial response to obtaining *root* and
-*resource-id-{base, mask}* (for creating new window identifiers). Enable big
-requests (which just means that for some requests you can send zero in
-the 16-bit length field and use an additional 32-bit length field for
-the request instead)."
+(defun connect (&key (ip #(127 0 0 1)) (filename nil) (port 6000))
+  "Initiate the connection with the X server. Use FILENAME
+'/tmp/.X11-unix/X0' to connect to a Unix domain socket for a TCP
+connection leave FILENAME nil and set IP and PORT. Use little endian,
+parse the servers initial response to obtaining *root* and
+*resource-id-{base, mask}* (for creating new window
+identifiers). Enable big requests (which just means that for some
+requests you can send zero in the 16-bit length field and use an
+additional 32-bit length field for the request instead)."
   (defparameter *s*
-    (socket-make-stream (let ((s (make-instance 'inet-socket 
-						:type :stream 
-						:protocol :tcp)))
-			  (socket-connect s ip port)
-			  s)
-			:element-type '(unsigned-byte 8)
-			:input t
-			:output t
-			:buffering :none))
+    (if filename
+	(socket-make-stream (let ((s (make-instance 'local-socket 
+						    :type :stream 
+						    )))
+			      (socket-connect s filename)
+			   s)
+			 :element-type '(unsigned-byte 8)
+			 :input t
+			 :output t
+			 :buffering :none)
+	(socket-make-stream (let ((s (make-instance 'inet-socket 
+						 :type :stream 
+						 :protocol :tcp)))
+			   (socket-connect s ip port)
+			   s)
+			 :element-type '(unsigned-byte 8)
+			 :input t
+			 :output t
+			 :buffering :none)))
   (with-packet
     (card8 #x6c)	       ; little endian
     (card8 0)		       ; unused

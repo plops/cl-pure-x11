@@ -10,7 +10,9 @@
 ;; socat -d -d TCP-LISTEN:6000,fork,bind=localhost UNIX-CONNECT:/tmp/.X11-unix/X0
 ;; https://askubuntu.com/questions/41330/let-xorg-listen-on-tcp-but-only-to-localhost
 
-(connect)
+
+
+(connect :filename "/tmp/.X11-unix/X0")
 (make-window)
 (draw-window 0 0 100 100)
 
@@ -52,3 +54,6 @@
 
 ;; https://www.x.org/wiki/guide/debugging/
 ;; xrestop shows how much memory clients allocate in xserver
+
+;; https://www.overleaf.com/blog/513-how-tex-calculates-glue-settings-in-an-slash-hbox
+
