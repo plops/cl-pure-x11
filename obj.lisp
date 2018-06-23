@@ -5,7 +5,7 @@
 (require :sb-concurrency)
 
 (defpackage :g
-  (:use :cl :pure-x11))
+  (:use :cl :pure-x11 :defclass-std))
 (in-package :g)
 
 ;; nowadays X servers normally don't listen on port 6000
@@ -83,6 +83,41 @@
 ;; p.22 Observer with :after method combination
 ;; http://norvig.com/design-patterns/design-patterns.pdf
 
+;; Intent: When an object changes, notify all interested
+;; Participants: Subject, Observer
+;; Implementation:
+;;    Subject: methods for attach/detach observer, notify
+;;    Observer: method for update
+;; use :after method combination
+
+
+
+(printing-unreadably
+ (coord)
+ (defclass/std vec2 ()
+   ((coord :type (complex double-float)))))
+
+(defun vec2 (x &optional y)
+  (make-instance 'vec2 :coord (complex (* 1d0 x) (* 1d0 y))))
+
+(vec2 1 2)
+
+(defmethod dot ((a point) (b point))
+  (* (coord b) (conjugate (coord a))))
+
+
+
+(defclass/std box ()
+  ((lo :type point)
+   (hi :type point)))
+
+(class/std button box)
+
+(defun notify-after (fn)
+  (eval `(defmethod ,fn :after (x)
+		    (mapc #'notify (observers x)))))
+
+(mapc #'notify-after '(cut paste edit))
 
 ;; https://www.x.org/wiki/guide/debugging/
 ;; xrestop shows how much memory clients allocate in xserver
