@@ -139,9 +139,6 @@ reply length and if necessary reads the rest of the reply packet.
 "
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
-    #+nil (assert (= (length buf)
-		     (sb-sys:read-n-bytes *s* buf 0 (length buf))
-		     ))
     (read-sequence buf *s*)
     (with-reply buf
       ;; errors have reply == 0; successful replies have reply==1;
@@ -156,14 +153,9 @@ reply length and if necessary reads the rest of the reply packet.
 		(< 1 reply )
 		(and (= reply 1) (= 0 reply-length)))
 	    (progn ;; error or event or 32byte reply
-	      (format t "read 32byte packet")
 	     (values buf sequence-number))
 	    (let ((m (make-array (+ #+nil 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
-	      (break "read large packet len=~a ~a." reply-length m)
-	      #+nil
-	      (progn (dotimes (i 32)
-		       (setf (aref m i) (aref buf i)))
-		     (assert (= (* 4 reply-length) (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length)))))
+	      (break "read large packet len=~a." reply-length)
 	      (read-sequence m *s*)
 	      (values (concatenate '(vector (unsigned-byte 8)) buf m) sequence-number)))))))
 
