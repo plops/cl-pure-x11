@@ -20,6 +20,9 @@
 (make-window)
 (draw-window 0 0 100 100)
 
+(defparameter *a* (make-array 32 :element-type '(unsigned-byte 8)))
+(sb-bsd-sockets:socket-receive pure-x11::*s* *a* 32)
+(read-sequence *a* pure-x11::*s* )
 #+nil
 (trace pure-x11::read-reply sb-sys:read-n-bytes
        sb-impl::ansi-stream-read-n-bytes sb-impl::ansi-stream-n-bin
