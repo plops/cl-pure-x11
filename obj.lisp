@@ -54,7 +54,7 @@
 
 
 ;; the server sends three types of packages back: errors, events and
-;; replies. errors and events are 32 bytes long.
+;; replies. errors and events (page 176) are 32 bytes long. 
 
 ;; replies always contain a length and a sequence number. that means
 ;; i can easily read all replies. i can skip replies even if i didn't

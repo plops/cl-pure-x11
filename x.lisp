@@ -132,6 +132,8 @@ Unused bytes within a reply are not guaranteed to be zero. Every
 reply also contains the least significant 16 bits of the sequence
 number of the corresponding request. (this is implicitly assigned)
 
+Errors (page 135) and events (page 176) are 32 bytes long. 
+
 This code first reads 32 bytes from the socket *s*. It parses the
 reply length and if necessary reads the rest of the reply packet.
 "
@@ -139,18 +141,23 @@ reply length and if necessary reads the rest of the reply packet.
 			  :element-type '(unsigned-byte 8))))
     (assert (= (length buf) (sb-sys:read-n-bytes *s* buf 0 (length buf))))
     (with-reply buf
+      ;; errors have reply == 0; successful replies have reply==1;
+      ;; events have reply in [2..34], MSB set if originates from
+      ;; SendEvent, 64..127 reserved for extensions
       (let ((reply (card8))
 	    (unused (card8))
 	    (sequence-number (card16))
 	    (reply-length (card32)))
 	(declare (ignorable reply unused))
-	(if (< 0 reply-length)
+	(if (and (= reply 1) (= 0 reply-length))
+	    (progn ;; error or event or 32byte reply
+	     (values buf sequence-number))
 	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
 	      (dotimes (i 32)
 		(setf (aref m i) (aref buf i)))
 	      (assert (= (* 4 reply-length) (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))))
 	      (values m sequence-number))
-	    (values buf sequence-number))))))
+	    )))))
 
 (defun read-reply ()
   (cond ((not (listen *s*))
