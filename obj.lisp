@@ -134,6 +134,13 @@
 #+nil
 (box 100 100 30 8)
 
+(defmethod translate ((b box) (v vec2))
+  (incf (coord (lo b)) (coord v))
+  (incf (coord (hi b)) (coord v))
+  b)
+
+(translate (box 100 100 10 10) (vec2 10 10))
+
 (defmethod dist ((b box) (p vec2))
   "0 when inside, positive when outside"
   (let ((d 0d0))
@@ -153,7 +160,10 @@
 (dist (box 0 0 1 1) (vec2 0 .5))
 
 
-(class/std button box)
+(printing-unreadably (box)
+		     (defclass/std button (box)
+		       ()))
+
 
 (defun notify-after (fn)
   (eval `(defmethod ,fn :after (x)
