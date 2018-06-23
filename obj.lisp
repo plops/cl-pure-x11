@@ -1,5 +1,5 @@
 
-(declaim (optimize (safety 0) (debug 3) (speed 0)))
+(declaim (optimize (safety 3) (debug 3) (speed 0)))
 (ql:quickload :defclass-std)
 (ql:quickload :pure-x11)
 (require :sb-concurrency)
@@ -107,10 +107,10 @@
 
 (defmethod draw ((b box))
   (with-slots (lo hi) b
-    (let ((x1 (realpart lo))
-	  (y1 (imagpart lo))
-	  (x2 (realpart hi))
-	  (y2 (imagpart hi)))
+    (let ((x1 (realpart (coord lo)))
+	  (y1 (imagpart (coord lo)))
+	  (x2 (realpart (coord hi)))
+	  (y2 (imagpart (coord hi))))
       (draw-window x1 y1 x2 y1)
       (draw-window x2 y1 x2 y2)
       (draw-window x2 y2 x1 y2)
@@ -154,7 +154,7 @@
 
 
 (defmethod notify ((b button) (v vec2))
-  (format t "button ~a received update ~a" (name button vec2)))
+  (format t "button ~a received update ~a" (name b) v))
 
 (printing-unreadably (observers)
 		     (defclass/std subject ()
@@ -171,13 +171,13 @@
 
 (printing-unreadably (pointer observers)
 		     (defclass/std subject-rx (subject)
-		       ((pointer :type vec2))))
+		       ((pointer :type vec2 :std (vec2 0d0 0d0)))))
 
 (defmethod move ((s subject-rx) (v vec2))
   (setf (pointer s) v))
 
 (defmethod move :after ((s subject-rx) (v vec2))
-  (loop for o in observers do
+  (loop for o in (observers s) do
        (notify o v)))
 
 #+nil
@@ -230,12 +230,17 @@
  #'(lambda ()
      (loop while t do
 	  (let ((msg  (sb-concurrency:receive-message *mailbox-rx*)))
-	    (when (= 6 (aref msg 0)) ;; pointer moved
-	      (multiple-value-bind (event-x event-y state) (pure-x11::parse-motion-notify msg)
-		(move *subject-rx* (vec2 event-x event-y))))
+	    (case (aref msg 0)
+	      (6
+	       ;; pointer moved
+	       (multiple-value-bind (event-x event-y state) (pure-x11::parse-motion-notify msg)
+		 (move *subject-rx* (vec2 event-x event-y)))))
 	   (format t "~{~2x ~}~%" (loop for e across msg
 				     collect e)))))
  :name "rx-print")
 
 (defparameter *button* (button 100 100 80 8))
+(draw *button*)
 (attach *subject-rx* *button*)
+
+
