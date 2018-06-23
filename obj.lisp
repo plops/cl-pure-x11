@@ -2,6 +2,7 @@
 (declaim (optimize (safety 0) (debug 3) (speed 0)))
 (ql:quickload :defclass-std)
 (ql:quickload :pure-x11)
+(require :sb-concurrency)
 
 (defpackage :g
   (:use :cl :pure-x11))
@@ -35,10 +36,15 @@
 
 (pure-x11::read-reply)
 
-(step (pure-x11::read-reply))
-(room)
-(sb-sys::gc)
-(pure-x11::read-reply-unknown-size)
+
+(defparameter *mailbox-rx* (sb-concurrency:make-mailbox :name 'rx))
+
+(sb-concurrency:list-mailbox-messages *mailbox-rx*)
+
+(sb-thread:make-thread
+ #'(lambda ()
+     (loop while true do
+      (sb-concurrency:send-message *mailbox-rx* (pure-x11::read-reply-wait)))))
 
 (pure-x11::clear-area)
 (draw-window 0 0 120 200)
