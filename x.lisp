@@ -137,7 +137,7 @@ reply length and if necessary reads the rest of the reply packet.
 "
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
-    (sb-sys:read-n-bytes *s* buf 0 (length buf))
+    (assert (= (length buf) (sb-sys:read-n-bytes *s* buf 0 (length buf))))
     (with-reply buf
       (let ((reply (card8))
 	    (unused (card8))
@@ -148,7 +148,7 @@ reply length and if necessary reads the rest of the reply packet.
 	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
 	      (dotimes (i 32)
 		(setf (aref m i) (aref buf i)))
-	      (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))
+	      (assert (= (* 4 reply-length) (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))))
 	      (values m sequence-number))
 	    (values buf sequence-number))))))
 
