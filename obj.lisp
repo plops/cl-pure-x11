@@ -21,22 +21,6 @@
 (make-window)
 (draw-window 0 0 100 100)
 
-(defparameter *a* (make-array 32 :element-type '(unsigned-byte 8)))
-(sb-bsd-sockets:socket-receive pure-x11::*s* *a* 32)
-(read-sequence *a* pure-x11::*s* )
-#+nil
-(trace pure-x11::read-reply sb-sys:read-n-bytes
-       sb-impl::ansi-stream-read-n-bytes sb-impl::ansi-stream-n-bin
-       sockint::recvfrom SB-IMPL::FD-STREAM-READ-N-BYTES
-       sb-bsd-sockets:socket-receive)
-
-;; If a message is too long to fit in the supplied buffer, excess bytes
-;; may be discarded depending on the type of socket the message is
-;; received from.
-
-(pure-x11::read-reply)
-
-
 (defparameter *mailbox-rx* (sb-concurrency:make-mailbox :name 'rx))
 
 (sb-concurrency:list-mailbox-messages *mailbox-rx*)
@@ -44,7 +28,15 @@
 (sb-thread:make-thread
  #'(lambda ()
      (loop while true do
-      (sb-concurrency:send-message *mailbox-rx* (pure-x11::read-reply-wait)))))
+	  (sb-concurrency:send-message *mailbox-rx* (pure-x11::read-reply-wait))))
+ :name "rx-post")
+
+(sb-thread:make-thread
+ #'(lambda ()
+     (loop while true do
+	  (format t "~{~2x ~}~%" (loop for e across (sb-concurrency:receive-message *mailbox-rx*)
+				  collect e))))
+ :name "rx-print")
 
 (pure-x11::clear-area)
 (draw-window 0 0 120 200)
