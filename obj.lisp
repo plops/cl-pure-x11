@@ -1,3 +1,4 @@
+(declaim (optimize (safety 0) (debug 3) (speed 0)))
 (ql:quickload :defclass-std)
 (ql:quickload :pure-x11)
 
@@ -20,18 +21,17 @@
 
 (trace pure-x11::read-reply sb-sys:read-n-bytes
        sb-impl::ansi-stream-read-n-bytes sb-impl::ansi-stream-n-bin
-       sockint::recvfrom
+       sockint::recvfrom SB-IMPL::FD-STREAM-READ-N-BYTES
        sb-bsd-sockets:socket-receive)
 
 ;; If a message is too long to fit in the supplied buffer, excess bytes
 ;; may be discarded depending on the type of socket the message is
 ;; received from.
 
-(pure-x11::read-reply)
+(progn (break) (pure-x11::read-reply))
 
 (room)
 (sb-sys::gc)
-
 (pure-x11::read-reply-unknown-size)
 
 (pure-x11::clear-area)
