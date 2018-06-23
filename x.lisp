@@ -139,7 +139,10 @@ reply length and if necessary reads the rest of the reply packet.
 "
   (let* ((buf (make-array 32
 			  :element-type '(unsigned-byte 8))))
-    (assert (= (length buf) (sb-sys:read-n-bytes *s* buf 0 (length buf))))
+    #+nil (assert (= (length buf)
+		     (sb-sys:read-n-bytes *s* buf 0 (length buf))
+		     ))
+    (read-sequence buf *s*)
     (with-reply buf
       ;; errors have reply == 0; successful replies have reply==1;
       ;; events have reply in [2..34], MSB set if originates from
@@ -149,16 +152,20 @@ reply length and if necessary reads the rest of the reply packet.
 	    (sequence-number (card16))
 	    (reply-length (card32)))
 	(declare (ignorable reply unused))
-	(if (= 0 reply-length)
+	(if (or (= reply 0)
+		(< 1 reply )
+		(and (= reply 1) (= 0 reply-length)))
 	    (progn ;; error or event or 32byte reply
 	      (format t "read 32byte packet")
 	     (values buf sequence-number))
-	    (let ((m (make-array (+ 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
-	      (break "read large packet ~a." m)
-	      (dotimes (i 32)
-		(setf (aref m i) (aref buf i)))
-	      (assert (= (* 4 reply-length) (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))))
-	      (values m sequence-number)))))))
+	    (let ((m (make-array (+ #+nil 32 (* 4 reply-length)) :element-type '(unsigned-byte 8))))
+	      (break "read large packet len=~a ~a." reply-length m)
+	      #+nil
+	      (progn (dotimes (i 32)
+		       (setf (aref m i) (aref buf i)))
+		     (assert (= (* 4 reply-length) (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length)))))
+	      (read-sequence m *s*)
+	      (values (concatenate '(vector (unsigned-byte 8)) buf m) sequence-number)))))))
 
 (defun read-reply ()
   (cond ((not (listen *s*))
