@@ -290,7 +290,8 @@ additional 32-bit length field for the request instead)."
 	  (same-screen-p (card8))
 	  (unused (card8)))
       (assert (= 6 code))
-      (values (ecase detail (0 :normal) (1 :hint) (t (error)))
+      (values event-x event-y state)
+      #+nil (values (ecase detail (0 :normal) (1 :hint) (t (error)))
 	      sequence-number
 	      root-window
 	      event-window

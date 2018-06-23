@@ -15,50 +15,13 @@
 ;; https://askubuntu.com/questions/41330/let-xorg-listen-on-tcp-but-only-to-localhost
 
 
-#+nil
-(connect :filename "/tmp/.X11-unix/X0")
-(connect)
-(make-window)
-(draw-window 0 0 100 100)
+#+nil (connect :filename "/tmp/.X11-unix/X0")
 
-(defparameter *mailbox-rx* (sb-concurrency:make-mailbox :name 'rx))
-
-(sb-concurrency:list-mailbox-messages *mailbox-rx*)
-
-(sb-thread:make-thread
- #'(lambda ()
-     (loop while true do
-	  (sb-concurrency:send-message *mailbox-rx* (pure-x11::read-reply-wait))))
- :name "rx-post")
-
-(sb-thread:make-thread
- #'(lambda ()
-     (loop while true do
-	  (format t "~{~2x ~}~%" (loop for e across (sb-concurrency:receive-message *mailbox-rx*)
-				  collect e))))
- :name "rx-print")
-
-(pure-x11::clear-area)
-(draw-window 0 0 120 200)
-(imagetext8 "hello" :x 100 :y 100)
-(query-pointer)
-(force-output pure-x11::*s*)
-(dotimes (i 100)
-  (sleep .1)
-  (format nil "~a" (query-pointer)))
-
-
-
-(pure-x11::read-reply-unknown-size)
-(sb-impl::ansi-stream-p pure-x11::*s*)
-(defparameter *b* (pure-x11::read-reply-unknown-size))
-(pure-x11::parse-expose *b*)
-*b*
-(pure-x11::parse-motion-notify *b*)
-
-
-(query-pointer)
-
+;(pure-x11::clear-area)
+;(draw-window 0 0 120 200)
+;(imagetext8 "hello" :x 100 :y 100)
+;(query-pointer)
+;(force-output pure-x11::*s*)
 
 ;; first i have to sort out the socket handling i have listen
 ;; continuously for events and parse them. use a single thread that
@@ -123,13 +86,35 @@
 #+nil
 (box 100 100 30 8)
 
-(defmethod translate ((b box) (v vec2))
+(defmethod rmove ((b box) (v vec2))
   (incf (coord (lo b)) (coord v))
   (incf (coord (hi b)) (coord v))
   b)
 
+
+(defmethod move ((b box) (v vec2))
+  (let ((c (*.5 (+ (coord (lo b))
+		   (coord (hi b)))))
+	(w (*.5 (- (coord (hi b))
+		   (coord (lo b))))))
+    (setf (coord (lo b)) (- (coord v) w))
+    (setf (coord (hi b)) (+ (coord v) w)))
+  b)
+
 #+nil
-(translate (box 100 100 10 10) (vec2 10 10))
+(rmove (box 100 100 10 10) (vec2 10 10))
+
+
+(defmethod draw ((b box))
+  (with-slots (lo hi) b
+    (let ((x1 (realpart lo))
+	  (y1 (imagpart lo))
+	  (x2 (realpart hi))
+	  (y2 (imagpart hi)))
+      (draw-window x1 y1 x2 y1)
+      (draw-window x2 y1 x2 y2)
+      (draw-window x2 y2 x1 y2)
+      (draw-window x1 y2 x1 y1))))
 
 (defmethod dist ((b box) (p vec2))
   "0 when inside, positive when outside"
@@ -168,8 +153,8 @@
 			   (+ cy (* .5 h)))))
 
 
-(defmethod update ((b button))
-  (format t "button ~a received update ~a" (name button)))
+(defmethod notify ((b button) (v vec2))
+  (format t "button ~a received update ~a" (name button vec2)))
 
 (printing-unreadably (observers)
 		     (defclass/std subject ()
@@ -183,6 +168,17 @@
 (defmethod detach ((s subject) (o observer))
   (setf (observers s) (delete o (observers s)))
   s)
+
+(printing-unreadably (pointer observers)
+		     (defclass/std subject-rx (subject)
+		       ((pointer :type vec2))))
+
+(defmethod move ((s subject-rx) (v vec2))
+  (setf (pointer s) v))
+
+(defmethod move :after ((s subject-rx) (v vec2))
+  (loop for o in observers do
+       (notify o v)))
 
 #+nil
 (let ((a (make-instance 'subject :name "subject-rx"))
@@ -201,10 +197,12 @@
 ;; use :after method combination
 
 
+
+#+nil
 (defun notify-after (fn)
   (eval `(defmethod ,fn :after (x)
 		    (mapc #'notify (observers x)))))
-
+#+nil
 (mapc #'notify-after '(cut paste edit))
 
 ;; https://www.x.org/wiki/guide/debugging/
@@ -212,3 +210,32 @@
 
 ;; https://www.overleaf.com/blog/513-how-tex-calculates-glue-settings-in-an-slash-hbox
 
+(connect)
+(make-window)
+(draw-window 0 0 100 100)
+
+(defparameter *mailbox-rx* (sb-concurrency:make-mailbox :name 'rx))
+
+(sb-concurrency:list-mailbox-messages *mailbox-rx*)
+
+(sb-thread:make-thread
+ #'(lambda ()
+     (loop while t do
+	  (sb-concurrency:send-message *mailbox-rx* (pure-x11::read-reply-wait))))
+ :name "rx-post")
+
+(defparameter *subject-rx* (make-instance 'subject-rx :name "subject-rx"))
+
+(sb-thread:make-thread
+ #'(lambda ()
+     (loop while t do
+	  (let ((msg  (sb-concurrency:receive-message *mailbox-rx*)))
+	    (when (= 6 (aref msg 0)) ;; pointer moved
+	      (multiple-value-bind (event-x event-y state) (pure-x11::parse-motion-notify msg)
+		(move *subject-rx* (vec2 event-x event-y))))
+	   (format t "~{~2x ~}~%" (loop for e across msg
+				     collect e)))))
+ :name "rx-print")
+
+(defparameter *button* (button 100 100 80 8))
+(attach *subject-rx* *button*)
