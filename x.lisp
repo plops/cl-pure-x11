@@ -156,8 +156,7 @@ reply length and if necessary reads the rest of the reply packet.
 	      (dotimes (i 32)
 		(setf (aref m i) (aref buf i)))
 	      (assert (= (* 4 reply-length) (sb-sys:read-n-bytes *s* m 32 (* 4 reply-length))))
-	      (values m sequence-number))
-	    )))))
+	      (values m sequence-number)))))))
 
 (defun read-reply ()
   (cond ((not (listen *s*))

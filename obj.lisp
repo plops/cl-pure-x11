@@ -19,9 +19,18 @@
 (draw-window 0 0 100 100)
 
 (trace pure-x11::read-reply sb-sys:read-n-bytes
-       sb-impl::ansi-stream-read-n-bytes sb-impl::ansi-stream-n-bin)
+       sb-impl::ansi-stream-read-n-bytes sb-impl::ansi-stream-n-bin
+       sockint::recvfrom
+       sb-bsd-sockets:socket-receive)
+
+;; If a message is too long to fit in the supplied buffer, excess bytes
+;; may be discarded depending on the type of socket the message is
+;; received from.
 
 (pure-x11::read-reply)
+
+(room)
+(sb-sys::gc)
 
 (pure-x11::read-reply-unknown-size)
 
