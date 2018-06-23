@@ -80,17 +80,6 @@
 ;; p. 1097 in numerical recipes
 
 
-;; p.22 Observer with :after method combination
-;; http://norvig.com/design-patterns/design-patterns.pdf
-
-;; Intent: When an object changes, notify all interested
-;; Participants: Subject, Observer
-;; Implementation:
-;;    Subject: methods for attach/detach observer, notify
-;;    Observer: method for update
-;; use :after method combination
-
-
 
 (printing-unreadably
  (coord)
@@ -139,6 +128,7 @@
   (incf (coord (hi b)) (coord v))
   b)
 
+#+nil
 (translate (box 100 100 10 10) (vec2 10 10))
 
 (defmethod dist ((b box) (p vec2))
@@ -160,9 +150,55 @@
 (dist (box 0 0 1 1) (vec2 0 .5))
 
 
-(printing-unreadably (box)
-		     (defclass/std button (box)
-		       ()))
+(defclass/std observer ()
+  ())
+
+(defgeneric update (observer))
+
+(printing-unreadably (lo hi)
+		     (defclass/std button (box observer)
+		       ((name))
+		      ))
+(defun button (cx cy w h &key name)
+  (make-instance 'button
+		 :name name 
+		 :lo (vec2 (- cx (* .5 w))
+			   (- cy (* .5 h)))
+		 :hi (vec2 (+ cx (* .5 w))
+			   (+ cy (* .5 h)))))
+
+
+(defmethod update ((b button))
+  (format t "button ~a received update ~a" (name button)))
+
+(printing-unreadably (observers)
+		     (defclass/std subject ()
+		       ((observers)
+			(name))))
+
+(defmethod attach ((s subject) (o observer))
+  (push o (observers s))
+  s)
+
+(defmethod detach ((s subject) (o observer))
+  (setf (observers s) (delete o (observers s)))
+  s)
+
+#+nil
+(let ((a (make-instance 'subject :name "subject-rx"))
+      (b  (button 100 100 10 10  :name 1)))
+  (attach a b)
+  (detach a b))
+
+;; p.22 Observer with :after method combination
+;; http://norvig.com/design-patterns/design-patterns.pdf
+
+;; Intent: When an object changes, notify all interested
+;; Participants: Subject, Observer
+;; Implementation:
+;;    Subject: methods for attach/detach observer, notify
+;;    Observer: method for update
+;; use :after method combination
 
 
 (defun notify-after (fn)
