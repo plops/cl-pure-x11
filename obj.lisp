@@ -1,3 +1,4 @@
+
 (declaim (optimize (safety 0) (debug 3) (speed 0)))
 (ql:quickload :defclass-std)
 (ql:quickload :pure-x11)
@@ -19,6 +20,7 @@
 (make-window)
 (draw-window 0 0 100 100)
 
+#+nil
 (trace pure-x11::read-reply sb-sys:read-n-bytes
        sb-impl::ansi-stream-read-n-bytes sb-impl::ansi-stream-n-bin
        sockint::recvfrom SB-IMPL::FD-STREAM-READ-N-BYTES
@@ -28,8 +30,9 @@
 ;; may be discarded depending on the type of socket the message is
 ;; received from.
 
-(progn (break) (pure-x11::read-reply))
+(pure-x11::read-reply)
 
+(step (pure-x11::read-reply))
 (room)
 (sb-sys::gc)
 (pure-x11::read-reply-unknown-size)
