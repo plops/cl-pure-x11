@@ -93,9 +93,9 @@
 
 
 (defmethod move ((b box) (v vec2))
-  (let ((c (*.5 (+ (coord (lo b))
-		   (coord (hi b)))))
-	(w (*.5 (- (coord (hi b))
+  (let ((c (* .5 (+ (coord (lo b))
+	 	   (coord (hi b)))))
+	(w (* .5 (- (coord (hi b))
 		   (coord (lo b))))))
     (setf (coord (lo b)) (- (coord v) w))
     (setf (coord (hi b)) (+ (coord v) w)))
@@ -114,7 +114,8 @@
       (draw-window x1 y1 x2 y1)
       (draw-window x2 y1 x2 y2)
       (draw-window x2 y2 x1 y2)
-      (draw-window x1 y2 x1 y1))))
+      (draw-window x1 y2 x1 y1)))
+  (force-output pure-x11::*s*))
 
 (defmethod dist ((b box) (p vec2))
   "0 when inside, positive when outside"
@@ -154,7 +155,9 @@
 
 
 (defmethod notify ((b button) (v vec2))
-  (format t "button ~a received update ~a" (name b) v))
+					;(format t "button ~a received update ~a" (name b) v)
+  (move b v)
+  (draw b))
 
 (printing-unreadably (observers)
 		     (defclass/std subject ()
@@ -240,7 +243,7 @@
  :name "rx-print")
 
 (defparameter *button* (button 100 100 80 8))
-(draw *button*)
+
 (attach *subject-rx* *button*)
 
 
