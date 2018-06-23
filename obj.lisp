@@ -100,16 +100,58 @@
 (defun vec2 (x &optional y)
   (make-instance 'vec2 :coord (complex (* 1d0 x) (* 1d0 y))))
 
+#+nil
 (vec2 1 2)
 
-(defmethod dot ((a point) (b point))
-  (* (coord b) (conjugate (coord a))))
+(defmethod dot ((a vec2) (b vec2))
+  (realpart (* (coord b) (conjugate (coord a)))))
 
+#+nil
+(dot (vec2 1 2) (vec2 1 1))
 
+(defmethod norm ((a vec2))
+  (sqrt (dot a a)))
+#+nil
+(norm (vec2 1 1))
 
-(defclass/std box ()
-  ((lo :type point)
-   (hi :type point)))
+(defmethod dist ((a vec2) (b vec2))
+  (let ((d  (- (coord a) (coord b))))
+   (sqrt (realpart (* d (conjugate d))))))
+
+(dist (vec2 0 1) (vec2 1 0))
+
+(printing-unreadably (lo hi)
+ (defclass/std box ()
+   ((lo :type vec2)
+    (hi :type vec2))))
+
+(defun box (cx cy w h)
+  (make-instance 'box
+		 :lo (vec2 (- cx (* .5 w))
+			   (- cy (* .5 h)))
+		 :hi (vec2 (+ cx (* .5 w))
+			   (+ cy (* .5 h)))))
+#+nil
+(box 100 100 30 8)
+
+(defmethod dist ((b box) (p vec2))
+  "0 when inside, positive when outside"
+  (let ((d 0d0))
+    (macrolet ((inc (component b p)
+		 `(let ((pc (,component (coord ,p)))
+			(bcl (,component (coord (lo ,b))))
+			(bch (,component (coord (hi ,b)))))
+		    (when (< pc bcl)
+		      (incf d (expt (- pc bcl) 2)))
+		    (when (< bch pc)
+		      (incf d (expt (- pc bch) 2))))))
+      (inc realpart b p)
+      (inc imagpart b p))
+    (sqrt d)))
+
+#+nil
+(dist (box 0 0 1 1) (vec2 0 .5))
+
 
 (class/std button box)
 
