@@ -166,20 +166,14 @@
 		 :hi (vec2 (+ cx (* .5 w))
 			   (+ cy (* .5 h)))))
 
-(defun vec2 (z )
-  (declare (type (complex double-float) z))
-  (vec2 (realpart z)
-	(imagpart z)))
-
-(vec2 (complex 0.0 1d0))
-
 (defmethod center ((b button))
-  (* .5 (+ (coord (lo b))
-	   (coord (hi b)))))
+  (vec2
+   (* .5 (+ (coord (lo b))
+	    (coord (hi b))))))
 
 (defmethod notify ((b button) (v vec2))
 					;(format t "button ~a received update ~a" (name b) v)
-  (if (< 0 (dist v (center b)))
+  (when (< 0 (dist v (center b)))
       (pure-x11::clear-area)
       (move b v)
       (draw b)))
