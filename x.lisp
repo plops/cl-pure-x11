@@ -504,10 +504,13 @@ of the server and stores into dynamic variables."
 			 (logand *resource-id-mask* 1)))
 	 (gc (logior *resource-id-base* 
 		     (logand *resource-id-mask* 2)))
+	 (gc2 (logior *resource-id-base* 
+		     (logand *resource-id-mask* 3)))
 	 (vals '(colormap backing-store event-mask bit-gravity border-pixel background-pixel))
 	 (n (length vals)))
     (defparameter *window* window)
     (defparameter *gc* gc)
+    (defparameter *gc2* gc2)
     (with-packet 
       (card8 1)			       ; opcode create-window
       (card8 0)			       ; depth
@@ -538,7 +541,16 @@ of the server and stores into dynamic variables."
       (card32 #x0c)			; gc-value-mask fg bg
       (card32 #x00ffffff)		; fg
       (card32 0)			; bg
-   
+
+      (card8 55)			; opcode create-gc
+      (card8 0)				; unused
+      (card16 6)			; length
+      (card32 gc2)			; cid
+      (card32 window)			; drawable
+      (card32 #x0c)			; gc-value-mask fg bg
+      (card32 0)			; fg
+      (card32 #x00ffffff)		; bg
+      
       (card8 8)				; opcode map-window
       (card8 0)				; unused
       (card16 2)			; length
@@ -576,7 +588,7 @@ of the server and stores into dynamic variables."
 	(card8 0))			; padding
       )))
 
-(defun draw-window (x1 y1 x2 y2)
+(defun draw-window (x1 y1 x2 y2 &key (gc *gc*))
   "Draw a line from (x1 y1) to (x2 y2) in *WINDOW*."
   (declare ((unsigned-byte 16) x1 y1 x2 y2))
   (with-packet
@@ -586,7 +598,7 @@ of the server and stores into dynamic variables."
       (card8 0)				  ; unused
       (card16 (+ 3 (* 2 (length segs))))  ; length
       (card32 *window*)			  ; drawable
-      (card32 *gc*)			  ; gc
+      (card32 gc)			  ; gc
       (dolist (s segs)
 	(dolist (p s)
 	  (card16 p))))))

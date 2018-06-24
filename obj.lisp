@@ -117,17 +117,17 @@
 (rmove (box 100 100 10 10) (vec2 10 10))
 
 
-(defmethod draw ((b box))
+(defmethod draw ((b box) &key (gc pure-x11::*gc*))
   (format t "draw box ~a~%" b)
   (with-slots (lo hi) b
     (let ((x1 (floor (realpart (coord lo))))
 	  (y1 (floor (imagpart (coord lo))))
 	  (x2 (floor (realpart (coord hi))))
 	  (y2 (floor (imagpart (coord hi)))))
-      (draw-window x1 y1 x2 y1)
-      (draw-window x2 y1 x2 y2)
-      (draw-window x2 y2 x1 y2)
-      (draw-window x1 y2 x1 y1)))
+      (draw-window x1 y1 x2 y1 :gc gc)
+      (draw-window x2 y1 x2 y2 :gc gc)
+      (draw-window x2 y2 x1 y2 :gc gc)
+      (draw-window x1 y2 x1 y1 :gc gc)))
   (force-output pure-x11::*s*))
 
 (defmethod dist ((b box) (p vec2))
@@ -174,7 +174,8 @@
 (defmethod notify ((b button) (v vec2))
 					;(format t "button ~a received update ~a" (name b) v)
   (when (< 0 (dist v (center b)))
-    ;(pure-x11::clear-area)
+					;(pure-x11::clear-area)
+    (draw b :gc pure-x11::*gc2*)
       (move b v)
       (draw b)))
 
@@ -246,8 +247,8 @@
 ;; xrestop shows how much memory clients allocate in xserver
 
 ;; https://www.overleaf.com/blog/513-how-tex-calculates-glue-settings-in-an-slash-hbox
-(connect :filename "/tmp/.X11-unix/X0")
-#+nil (connect)
+;(connect :filename "/tmp/.X11-unix/X0")
+(connect)
 (make-window)
 (draw-window 0 0 100 100)
 
