@@ -157,6 +157,7 @@
 
 (defmethod notify ((b button) (v vec2))
 					;(format t "button ~a received update ~a" (name b) v)
+  (draw b)
   (move b v)
   (draw b))
 
