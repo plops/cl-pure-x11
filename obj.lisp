@@ -274,3 +274,5 @@
 (attach *subject-rx* *button*)
 
 
+;; Low Level X Window Programming: An Introduction by Examples
+;; By Ross J. Maloney (2017)
