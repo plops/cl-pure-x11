@@ -106,11 +106,12 @@
 
 
 (defmethod draw ((b box))
+  (format t "draw box ~a" b)
   (with-slots (lo hi) b
-    (let ((x1 (realpart (coord lo)))
-	  (y1 (imagpart (coord lo)))
-	  (x2 (realpart (coord hi)))
-	  (y2 (imagpart (coord hi))))
+    (let ((x1 (floor (realpart (coord lo))))
+	  (y1 (floor (imagpart (coord lo))))
+	  (x2 (floor (realpart (coord hi))))
+	  (y2 (floor (imagpart (coord hi)))))
       (draw-window x1 y1 x2 y1)
       (draw-window x2 y1 x2 y2)
       (draw-window x2 y2 x1 y2)
@@ -234,7 +235,6 @@
      (loop while t do
 	  (let ((msg  (sb-concurrency:receive-message *mailbox-rx*)))
 	    (case (aref msg 0)
-	      
 	      (0 (format t "error ~{~2x ~}~%" (loop for e across msg
 						 collect e)))
 	      (1 (format t "reply ~{~2x ~}~%" (loop for e across msg
