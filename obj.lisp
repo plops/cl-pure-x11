@@ -276,3 +276,4 @@
 
 ;; Low Level X Window Programming: An Introduction by Examples
 ;; By Ross J. Maloney (2017)
+;; p. 156 explains insertion cursor
