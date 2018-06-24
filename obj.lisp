@@ -15,7 +15,7 @@
 ;; https://askubuntu.com/questions/41330/let-xorg-listen-on-tcp-but-only-to-localhost
 
 
-#+nil (connect :filename "/tmp/.X11-unix/X0")
+
 
 ;(pure-x11::clear-area)
 ;(draw-window 0 0 120 200)
@@ -212,8 +212,8 @@
 ;; xrestop shows how much memory clients allocate in xserver
 
 ;; https://www.overleaf.com/blog/513-how-tex-calculates-glue-settings-in-an-slash-hbox
-
-(connect)
+(connect :filename "/tmp/.X11-unix/X0")
+#+nil (connect)
 (make-window)
 (draw-window 0 0 100 100)
 
@@ -234,12 +234,21 @@
      (loop while t do
 	  (let ((msg  (sb-concurrency:receive-message *mailbox-rx*)))
 	    (case (aref msg 0)
-	      (6
-	       ;; pointer moved
+	      
+	      (0 (format t "error ~{~2x ~}~%" (loop for e across msg
+						 collect e)))
+	      (1 (format t "reply ~{~2x ~}~%" (loop for e across msg
+						 collect e)))
+	      (6 ;; pointer moved
 	       (multiple-value-bind (event-x event-y state) (pure-x11::parse-motion-notify msg)
-		 (move *subject-rx* (vec2 event-x event-y)))))
-	   (format t "~{~2x ~}~%" (loop for e across msg
-				     collect e)))))
+		 (move *subject-rx* (vec2 event-x event-y))
+		 (format t "motion ~a ~a ~{~2x ~}~%"
+			 event-x event-y
+			 (loop for e across msg
+			    collect e))))
+	      (t (format t "event ~{~2x ~}~%" (loop for e across msg
+						 collect e))))
+	    )))
  :name "rx-print")
 
 (defparameter *button* (button 100 100 80 8))
