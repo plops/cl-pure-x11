@@ -49,8 +49,20 @@
  (defclass/std vec2 ()
    ((coord :type (complex double-float)))))
 
+#+nil
 (defun vec2 (x &optional y)
   (make-instance 'vec2 :coord (complex (* 1d0 x) (* 1d0 y))))
+
+(defmethod vec2 ((x number) &optional (y 0d0))
+  (make-instance 'vec2 :coord (complex (* 1d0 x) (* 1d0 y))))
+
+(defmethod vec2 ((z complex) &optional y)
+  (make-instance 'vec2 :coord z))
+
+#+nil
+(vec2 2d0 3d0)
+#+nil
+(vec2 (complex 1d0))
 
 #+nil
 (vec2 1 2)
@@ -106,7 +118,7 @@
 
 
 (defmethod draw ((b box))
-  (format t "draw box ~a" b)
+  (format t "draw box ~a~%" b)
   (with-slots (lo hi) b
     (let ((x1 (floor (realpart (coord lo))))
 	  (y1 (floor (imagpart (coord lo))))
@@ -154,12 +166,23 @@
 		 :hi (vec2 (+ cx (* .5 w))
 			   (+ cy (* .5 h)))))
 
+(defun vec2 (z )
+  (declare (type (complex double-float) z))
+  (vec2 (realpart z)
+	(imagpart z)))
+
+(vec2 (complex 0.0 1d0))
+
+(defmethod center ((b button))
+  (* .5 (+ (coord (lo b))
+	   (coord (hi b)))))
 
 (defmethod notify ((b button) (v vec2))
 					;(format t "button ~a received update ~a" (name b) v)
-  (pure-x11::clear-area)
-  (move b v)
-  (draw b))
+  (if (< 0 (dist v (center b)))
+      (pure-x11::clear-area)
+      (move b v)
+      (draw b)))
 
 (printing-unreadably (observers)
 		     (defclass/std subject ()
