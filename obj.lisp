@@ -173,11 +173,10 @@
 
 (defmethod notify ((b button) (v vec2))
 					;(format t "button ~a received update ~a" (name b) v)
-  (when (< 0 (dist v (center b)))
-					;(pure-x11::clear-area)
-    (draw b :gc pure-x11::*gc2*)
-      (move b v)
-      (draw b)))
+  ;(pure-x11::clear-area)
+  (draw b :gc pure-x11::*gc2*)
+  (move b v)
+  (draw b))
 
 (printing-unreadably (observers)
 		     (defclass/std subject ()
