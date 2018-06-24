@@ -174,7 +174,7 @@
 (defmethod notify ((b button) (v vec2))
 					;(format t "button ~a received update ~a" (name b) v)
   (when (< 0 (dist v (center b)))
-      (pure-x11::clear-area)
+    ;(pure-x11::clear-area)
       (move b v)
       (draw b)))
 
@@ -201,6 +201,21 @@
 (defmethod move :after ((s subject-rx) (v vec2))
   (loop for o in (observers s) do
        (notify o v)))
+
+;; layout contains a list of boxes its notify propagates the motion
+;; events to the affected box(es) so it is at the same time an
+;; observer (looking at motion events from subject-rx) and a subject
+;; (controlling boxes). the notified boxes will move and redraw
+;; themselves
+
+(printing-unreadably (observers)
+		     (defclass/std layout (subject observer) 
+		       ()))
+
+(defmethod notify ((l layout) (v vec2))
+  (dolist (b (observers l))
+   (when (= 0 (dist b v)) ;; inside
+     (notify b v))))
 
 #+nil
 (let ((a (make-instance 'subject :name "subject-rx"))
@@ -269,10 +284,16 @@
 	    )))
  :name "rx-print")
 
-(defparameter *button* (button 100 100 80 8))
+(defparameter *layout* (make-instance 'layout :name "subject-layout"))
 
-(attach *subject-rx* *button*)
+(attach *subject-rx* *layout*)
 
+
+(defparameter *button1* (button 100 100 80 8))
+(defparameter *button2* (button 100 200 80 12))
+
+(attach *layout* *button1*)
+(attach *layout* *button2*)
 
 ;; Low Level X Window Programming: An Introduction by Examples
 ;; By Ross J. Maloney (2017)
