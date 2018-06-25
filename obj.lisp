@@ -297,7 +297,52 @@
 	    )))
  :name "rx-print")
 
+;; InterState: A Language and Environment for Expressing Interface
+;; Behavior by Stephen Oney (2014)
 
+;; AIM-1227 behavior languages by Rodney Brooks (1990)
+
+(defmacro define-automaton (name states &key (stop 'stop) (debug nil))
+  (let ((event-func (gensym "FUNC")))
+    `(defun ,name (,event-func)
+       (tagbody
+	  ,@(loop for (state-name . transitions) in states
+	       appending 
+		 (list state-name
+		       `(case (funcall ,event-func)
+			  ,@(loop for (match next . actions) in transitions
+			       collecting `(,match
+					       ,@actions
+					     ,@(when debug
+						 `((format t "Matched ~A. Transitioning to state ~A.~%" ',match ',next)))
+					     (go ,next))))
+		       `(go ,state-name)))
+	  ,stop))))
+
+(define-automaton look-for-lisp
+    ((start ('l found-l)
+            ('x stop))
+     (found-l ('i found-i)
+              ('l found-l)
+              (otherwise start))
+     (found-i ('s found-s)
+              ('l found-l)
+              (otherwise start))
+     (found-s ('p start
+                  (format t "Found LISP~%")
+                  (return-from look-for-lisp t))
+              ('l found-l)
+              (otherwise start)))
+  :debug nil)
+
+
+(let ((sk '(a v l i  s p x x x)))
+  (look-for-lisp #'(lambda () (pop sk))))
+
+#+nil
+(defun button-fsm (state condition)
+  (ecase state
+    ()))
 
 (attach *subject-rx* *layout*)
 
