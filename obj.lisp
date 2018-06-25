@@ -246,8 +246,8 @@
 ;; xrestop shows how much memory clients allocate in xserver
 
 ;; https://www.overleaf.com/blog/513-how-tex-calculates-glue-settings-in-an-slash-hbox
-;(connect :filename "/tmp/.X11-unix/X0")
-(connect)
+(connect :filename "/tmp/.X11-unix/X0")
+;(connect)
 (make-window)
 (draw-window 0 0 100 100)
 
@@ -275,10 +275,12 @@
 	      (6 ;; pointer moved
 	       (multiple-value-bind (event-x event-y state) (pure-x11::parse-motion-notify msg)
 		 (move *subject-rx* (vec2 event-x event-y))
-		 (format t "motion ~a ~a ~{~2x ~}~%"
+		 (format t "motion ~4,'0d ~4,'0d ~{~2,'0x ~}~%"
 			 event-x event-y
 			 (loop for e across msg
 			    collect e))))
+	      (12
+	       (format t "expose~%"))
 	      (t (format t "event ~{~2x ~}~%" (loop for e across msg
 						 collect e))))
 	    )))
