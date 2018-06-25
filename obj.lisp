@@ -130,6 +130,8 @@
       (draw-window x1 y2 x1 y1 :gc gc)))
   (force-output pure-x11::*s*))
 
+
+
 (defmethod dist ((b box) (p vec2))
   "0 when inside, positive when outside"
   (let ((d 0d0))
@@ -223,6 +225,11 @@
   (attach a b)
   (detach a b))
 
+
+(defmethod draw ((l layout) &key (gc pure-x11::*gc*))
+  (loop for o in (observers l) do
+       (draw o)))
+
 ;; p.22 Observer with :after method combination
 ;; http://norvig.com/design-patterns/design-patterns.pdf
 
@@ -263,6 +270,8 @@
 
 (defparameter *subject-rx* (make-instance 'subject-rx :name "subject-rx"))
 
+(defparameter *layout* (make-instance 'layout :name "subject-layout"))
+
 (sb-thread:make-thread
  #'(lambda ()
      (loop while t do
@@ -280,13 +289,15 @@
 			 (loop for e across msg
 			    collect e))))
 	      (12
-	       (format t "expose~%"))
+	       (format t "expose~%")
+	       (pure-x11::clear-area)
+	       (draw *layout*))
 	      (t (format t "event ~{~2x ~}~%" (loop for e across msg
 						 collect e))))
 	    )))
  :name "rx-print")
 
-(defparameter *layout* (make-instance 'layout :name "subject-layout"))
+
 
 (attach *subject-rx* *layout*)
 
