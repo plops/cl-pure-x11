@@ -336,6 +336,15 @@
   :debug nil)
 
 
+((start (:inside mouse-over))
+ (mouse-over (:outside start)
+	     ((and :press :inside) active))
+ (active (:outside active-out)
+	 ((and :inside :release) fire))
+ (fire (t start))
+ (active-out (:inside active)
+	     ((and :outside :release) start)))
+
 (let ((sk '(a v l i  s p x x x)))
   (look-for-lisp #'(lambda () (pop sk))))
 
