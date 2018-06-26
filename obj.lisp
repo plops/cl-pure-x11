@@ -368,8 +368,8 @@
 (let ((mailbox-button-events (sb-concurrency:make-mailbox)))
   ;; layout has to keep a list of observers that were recently
   ;; mouse-over or are currently inside and send copies of events to
-  ;; each of their mailboxes. the state of the button should determine
-  ;; which events will be sent
+  ;; each of their mailboxes. as an optional optimization the state of
+  ;; the button can determine which events will be sent
  (button-behaviour #'(lambda () (sb-concurrency:receive-message mailbox-button-events))))
 
 #+nil
