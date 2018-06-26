@@ -338,24 +338,29 @@
 (let ((sk '(a v l i  s p x x x)))
   (look-for-lisp #'(lambda () (pop sk))))
 
-(defmacro define-event-automaton (name states &key (stop 'stop) (debug nil))
+(defmacro define-event-automaton (name widget states &key (stop 'stop) (debug nil))
   (let ((event-func (gensym "FUNC")))
     `(defun ,name (,event-func)
        (tagbody
 	  ,@(loop for (state-name . transitions) in states
 	       appending 
 		 (list state-name
-		       `(case (funcall ,event-func)
-			  ,@(loop for (match next . actions) in transitions
-			       collecting `(,match
-					       ,@actions
-					     ,@(when debug
-						 `((format t "Matched ~A. Transitioning to state ~A.~%" ',match ',next)))
-					     (go ,next))))
+		       `(let ((e (funcall ,event-func)))
+			  (symbol-macrolet ((:inside (= 0 (dist widget (coord e))))
+					    (:outside (< 0 (dist widget (coord e))))
+					    (:press (member :press (state e)))
+					    (:release (member :release (state e))))
+			   (case 
+			       ,@(loop for (match next . actions) in transitions
+				    collecting `(,match
+						    ,@actions
+						  ,@(when debug
+						      `((format t "Matched ~A. Transitioning to state ~A.~%" ',match ',next)))
+						  (go ,next))))))
 		       `(go ,state-name)))
 	  ,stop))))
 
-(define-event-automaton button-behaviour 
+(define-event-automaton button-behaviour *button1*
  ((start (:inside mouse-over))
   (mouse-over (:outside start)
 	      ((and :press :inside) active))
