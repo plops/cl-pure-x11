@@ -335,18 +335,42 @@
               (otherwise start)))
   :debug nil)
 
-
-((start (:inside mouse-over))
- (mouse-over (:outside start)
-	     ((and :press :inside) active))
- (active (:outside active-out)
-	 ((and :inside :release) fire))
- (fire (t start))
- (active-out (:inside active)
-	     ((and :outside :release) start)))
-
 (let ((sk '(a v l i  s p x x x)))
   (look-for-lisp #'(lambda () (pop sk))))
+
+(defmacro define-event-automaton (name states &key (stop 'stop) (debug nil))
+  (let ((event-func (gensym "FUNC")))
+    `(defun ,name (,event-func)
+       (tagbody
+	  ,@(loop for (state-name . transitions) in states
+	       appending 
+		 (list state-name
+		       `(case (funcall ,event-func)
+			  ,@(loop for (match next . actions) in transitions
+			       collecting `(,match
+					       ,@actions
+					     ,@(when debug
+						 `((format t "Matched ~A. Transitioning to state ~A.~%" ',match ',next)))
+					     (go ,next))))
+		       `(go ,state-name)))
+	  ,stop))))
+
+(define-event-automaton button-behaviour 
+ ((start (:inside mouse-over))
+  (mouse-over (:outside start)
+	      ((and :press :inside) active))
+  (active (:outside active-out)
+	  ((and :inside :release) fire))
+  (fire (t start))
+  (active-out (:inside active)
+	      ((and :outside :release) start))))
+
+(let ((mailbox-button-events (sb-concurrency:make-mailbox)))
+  ;; layout has to keep a list of observers that were recently
+  ;; mouse-over or are currently inside and send copies of events to
+  ;; each of their mailboxes. the state of the button should determine
+  ;; which events will be sent
+ (button-behaviour #'(lambda () (sb-concurrency:receive-message mailbox-button-events))))
 
 #+nil
 (defun button-fsm (state condition)
