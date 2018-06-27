@@ -525,8 +525,9 @@ of the server and stores into dynamic variables."
   (flet ((lookup (e)
 	   (cadr (assoc e *set-of-key-button-r*))))
     (if (listp es)
-       (loop for e in es collect
-	    (lookup e)))))
+	(loop for e in es collect
+	     (lookup e))
+	(lookup es))))
 
 (defun make-window (&key (width 512) (height 512) (x 0) (y 0))
   "Create a window with size WIDTH x HEIGHT at position (X Y) using

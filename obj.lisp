@@ -273,19 +273,20 @@
 (defparameter *layout* (make-instance 'layout :name "subject-layout"))
 
 (printing-unreadably
- (coord)
- (defclass/std event ()
-   ((coord :type vec2)
+ (pos state timestamp)
+ (defclass/std motion-event ()
+   ((pos :type vec2)
     (state :std nil)
     (timestamp :std nil)
     )))
 
-(defun make-event (msg)
+(defun make-motion-event (msg)
   (multiple-value-bind (event-x event-y state timestamp) (pure-x11::parse-motion-notify msg)
-    (make-instance 'event
-		   :coord (vec2 event-x event-y)
+    (make-instance 'motion-event
+		   :pos (vec2 event-x event-y)
 		   :state (pure-x11::key-button-r state)
 		   :timestamp timestamp)))
+
 
 (sb-thread:make-thread
  #'(lambda ()
@@ -297,8 +298,8 @@
 	      (1 (format t "reply ~{~2x ~}~%" (loop for e across msg
 						 collect e)))
 	      (6 ;; pointer moved
-	       (let ((event (make-event msg)))
-		 (move *subject-rx* (coord event))
+	       (let ((event (make-motion-event msg)))
+		 (move *subject-rx* (pos event))
 		 (format t "motion ~a~%" event)))
 	      (12
 	       (format t "expose~%")
