@@ -276,10 +276,16 @@
  (coord)
  (defclass/std event ()
    ((coord :type (complex double-float))
-    (state )
-    (timestamp)
+    (state :std nil)
+    (timestamp :std nil)
     )))
 
+(defun make-event (msg)
+  (multiple-value-bind (event-x event-y state timestamp) (pure-x11::parse-motion-notify msg)
+    (make-instance 'event
+		   :coord (complex (* 1d0 event-x) event-y)
+		   :state (pure-x11::key-button-r state)
+		   :timestamp timestamp)))
 
 (sb-thread:make-thread
  #'(lambda ()
@@ -291,12 +297,9 @@
 	      (1 (format t "reply ~{~2x ~}~%" (loop for e across msg
 						 collect e)))
 	      (6 ;; pointer moved
-	       (multiple-value-bind (event-x event-y state) (pure-x11::parse-motion-notify msg)
-		 (move *subject-rx* (vec2 event-x event-y))
-		 (format t "motion ~4,'0d ~4,'0d ~{~2,'0x ~}~%"
-			 event-x event-y
-			 (loop for e across msg
-			    collect e))))
+	       (let ((event (make-event msg)))
+		 (move *subject-rx* (coord event))
+		 (format t "motion ~a~%" event)))
 	      (12
 	       (format t "expose~%")
 	       (pure-x11::clear-area)

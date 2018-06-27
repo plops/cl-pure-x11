@@ -290,7 +290,7 @@ additional 32-bit length field for the request instead)."
 	  (same-screen-p (card8))
 	  (unused (card8)))
       (assert (= 6 code))
-      (values event-x event-y state)
+      (values event-x event-y state time)
       #+nil (values (ecase detail (0 :normal) (1 :hint) (t (error)))
 	      sequence-number
 	      root-window
@@ -523,11 +523,10 @@ of the server and stores into dynamic variables."
 
 (defun key-button-r (es)
   (flet ((lookup (e)
-	   (cadr (assoc e *set-of-key-button*))))
+	   (cadr (assoc e *set-of-key-button-r*))))
     (if (listp es)
-       (loop for e in es sum
-	    (lookup e))
-       (lookup es))))
+       (loop for e in es collect
+	    (lookup e)))))
 
 (defun make-window (&key (width 512) (height 512) (x 0) (y 0))
   "Create a window with size WIDTH x HEIGHT at position (X Y) using
