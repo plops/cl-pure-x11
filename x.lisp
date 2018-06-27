@@ -495,6 +495,39 @@ of the server and stores into dynamic variables."
 	    (lookup e))
        (lookup es))))
 
+(defparameter *set-of-key-button*
+  `((Shift  #x0001)     
+    (Lock   #x0002)     
+    (Control #x0004)     
+    (Mod1	  #x0008)     
+    (Mod2	  #x0010)     
+    (Mod3	  #x0020)     
+    (Mod4	  #x0040)     
+    (Mod5	  #x0080)     
+    (Button1 #x0100)     
+    (Button2 #x0200)     
+    (Button3 #x0400)     
+    (Button4 #x0800)     
+    (Button5 #x1000)))     
+
+(defparameter *set-of-key-button-r*
+  (loop for (a b) in *set-of-key-button* collect (list b a)))
+
+(defun key-button (es)
+  (flet ((lookup (e)
+	   (cadr (assoc e *set-of-key-button*))))
+    (if (listp es)
+       (loop for e in es sum
+	    (lookup e))
+       (lookup es))))
+
+(defun key-button-r (es)
+  (flet ((lookup (e)
+	   (cadr (assoc e *set-of-key-button*))))
+    (if (listp es)
+       (loop for e in es sum
+	    (lookup e))
+       (lookup es))))
 
 (defun make-window (&key (width 512) (height 512) (x 0) (y 0))
   "Create a window with size WIDTH x HEIGHT at position (X Y) using

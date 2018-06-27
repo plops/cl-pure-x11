@@ -272,6 +272,15 @@
 
 (defparameter *layout* (make-instance 'layout :name "subject-layout"))
 
+(printing-unreadably
+ (coord)
+ (defclass/std event ()
+   ((coord :type (complex double-float))
+    (state )
+    (timestamp)
+    )))
+
+
 (sb-thread:make-thread
  #'(lambda ()
      (loop while t do
@@ -319,6 +328,7 @@
 		       `(go ,state-name)))
 	  ,stop))))
 
+#+nil
 (define-automaton look-for-lisp
     ((start ('l found-l)
             ('x stop))
@@ -335,8 +345,10 @@
               (otherwise start)))
   :debug nil)
 
+#+nil
 (let ((sk '(a v l i  s p x x x)))
   (look-for-lisp #'(lambda () (pop sk))))
+
 
 (defmacro define-event-automaton (name widget states &key (stop 'stop) (debug nil))
   (let ((event-func (gensym "FUNC")))
@@ -359,7 +371,7 @@
 						  (go ,next))))))
 		       `(go ,state-name)))
 	  ,stop))))
-
+#+nnil
 (define-event-automaton button-behaviour *button1*
  ((start (:inside mouse-over))
   (mouse-over (:outside start)
@@ -372,6 +384,7 @@
 	      ((and #+nil :outside
 		    :release) start))))
 
+#+nil
 (let ((mailbox-button-events (sb-concurrency:make-mailbox)))
   ;; layout has to keep a list of observers that were recently
   ;; mouse-over or are currently inside and send copies of events to
