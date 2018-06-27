@@ -275,7 +275,7 @@
 (printing-unreadably
  (coord)
  (defclass/std event ()
-   ((coord :type (complex double-float))
+   ((coord :type vec2)
     (state :std nil)
     (timestamp :std nil)
     )))
@@ -283,7 +283,7 @@
 (defun make-event (msg)
   (multiple-value-bind (event-x event-y state timestamp) (pure-x11::parse-motion-notify msg)
     (make-instance 'event
-		   :coord (complex (* 1d0 event-x) event-y)
+		   :coord (vec2 event-x event-y)
 		   :state (pure-x11::key-button-r state)
 		   :timestamp timestamp)))
 
