@@ -350,7 +350,7 @@
 					    (:outside (< 0 (dist widget (coord e))))
 					    (:press (member :press (state e)))
 					    (:release (member :release (state e))))
-			   (case 
+			   (cond
 			       ,@(loop for (match next . actions) in transitions
 				    collecting `(,match
 						    ,@actions
@@ -363,12 +363,14 @@
 (define-event-automaton button-behaviour *button1*
  ((start (:inside mouse-over))
   (mouse-over (:outside start)
-	      ((and :press :inside) active))
+	      ((and :press #+nil :inside) active))
   (active (:outside active-out)
-	  ((and :inside :release) fire))
+	  ((and #+nil :inside
+		:release) fire))
   (fire (t start))
   (active-out (:inside active)
-	      ((and :outside :release) start))))
+	      ((and #+nil :outside
+		    :release) start))))
 
 (let ((mailbox-button-events (sb-concurrency:make-mailbox)))
   ;; layout has to keep a list of observers that were recently
