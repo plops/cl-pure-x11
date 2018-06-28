@@ -316,6 +316,9 @@
 		   :state (pure-x11::key-button-r state)
 		   :timestamp timestamp)))
 
+#+nil
+(typep  (make-button-press-event (make-array (* 4 32) :element-type '(unsigned-byte 8) :initial-element 4))
+	'button-press-event)
 
 (sb-thread:make-thread
  #'(lambda ()
@@ -389,6 +392,7 @@
 #+nil
 (let ((sk '(a v l i  s p x x x)))
   (look-for-lisp #'(lambda () (pop sk))))
+
 
 
 (defmacro define-event-automaton (name widget states &key (stop 'stop) (debug nil))
