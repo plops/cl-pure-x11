@@ -259,6 +259,7 @@
 (draw-window 0 0 100 100)
 
 (defparameter *mailbox-rx* (sb-concurrency:make-mailbox :name 'rx))
+(defparameter *mailbox-event-rx* (sb-concurrency:make-mailbox :name 'event-rx))
 
 (sb-concurrency:list-mailbox-messages *mailbox-rx*)
 
@@ -331,16 +332,20 @@
 						 collect e)))
 	      (4 ;; button press
 	       (let ((event (make-button-press-event msg)))
-		 (move *subject-rx* (pos event))
+		 ;(move *subject-rx* (pos event))
+		 (sb-concurrency:send-message *mailbox-event-rx* event)
 		 (format t "press ~a~%" event)))
 	      (5 ;; button release
 	       (let ((event (make-button-release-event msg)))
-		 (move *subject-rx* (pos event))
+		 (sb-concurrency:send-message *mailbox-event-rx*
+					      event)
+		 ;(move *subject-rx* (pos event))
 		 (format t "release ~a~%" event)))
 	      (6 ;; pointer moved
 	       (let ((event (make-motion-event msg)))
-		 (move *subject-rx* (pos event))
-		 (format t "motion ~a~%" event)))
+		 (sb-concurrency:send-message *mailbox-event-rx* event)
+		 ;(move *subject-rx* (pos event))
+		 #+nil (format t "motion ~a~%" event)))
 	      (12
 	       (format t "expose~%")
 	       (pure-x11::clear-area)
@@ -403,10 +408,10 @@
 	       appending 
 		 (list state-name
 		       `(let ((e (funcall ,event-func)))
-			  (symbol-macrolet ((:inside (= 0 (dist widget (coord e))))
-					    (:outside (< 0 (dist widget (coord e))))
-					    (:press (member :press (state e)))
-					    (:release (member :release (state e))))
+			  (symbol-macrolet ((inside (= 0 (dist ,widget (pos e))))
+					    (outside (< 0 (dist ,widget (pos e))))
+					    (press (typep e 'button-press-event))
+					    (release (typep e 'button-release-event)))
 			   (cond
 			       ,@(loop for (match next . actions) in transitions
 				    collecting `(,match
@@ -416,18 +421,26 @@
 						  (go ,next))))))
 		       `(go ,state-name)))
 	  ,stop))))
-#+nnil
-(define-event-automaton button-behaviour *button1*
- ((start (:inside mouse-over))
-  (mouse-over (:outside start)
-	      ((and :press #+nil :inside) active))
-  (active (:outside active-out)
+
+(defparameter *button1* (button 100 100 80 8))
+(defparameter *button2* (button 100 200 80 12))
+
+
+(define-event-automaton button1-behaviour *button1*
+ ((start (inside mouse-over))
+  (mouse-over (outside start)
+	      ((and press #+nil :inside) active))
+  (active (outside active-out)
 	  ((and #+nil :inside
-		:release) fire))
+		release) fire))
   (fire (t start))
-  (active-out (:inside active)
+  (active-out (inside active)
 	      ((and #+nil :outside
-		    :release) start))))
+		    release) start)))
+ :debug t)
+
+
+(button1-behaviour #'(lambda () (sb-concurrency:receive-message *mailbox-event-rx*)))
 
 #+nil
 (let ((mailbox-button-events (sb-concurrency:make-mailbox)))
@@ -445,8 +458,6 @@
 (attach *subject-rx* *layout*)
 
 
-(defparameter *button1* (button 100 100 80 8))
-(defparameter *button2* (button 100 200 80 12))
 
 (attach *layout* *button1*)
 (attach *layout* *button2*)
