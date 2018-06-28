@@ -297,6 +297,14 @@
 						 collect e)))
 	      (1 (format t "reply ~{~2x ~}~%" (loop for e across msg
 						 collect e)))
+	      (4 ;; button press
+	       (let ((event (make-motion-event msg)))
+		 (move *subject-rx* (pos event))
+		 (format t "press ~a~%" event)))
+	      (4 ;; button release
+	       (let ((event (make-motion-event msg)))
+		 (move *subject-rx* (pos event))
+		 (format t "release ~a~%" event)))
 	      (6 ;; pointer moved
 	       (let ((event (make-motion-event msg)))
 		 (move *subject-rx* (pos event))

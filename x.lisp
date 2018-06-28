@@ -273,7 +273,10 @@ additional 32-bit length field for the request instead)."
       (assert (= 12 code))
       (values sequence-number window x y width height count))))
 
+
+
 (defun parse-motion-notify (r)
+  "this parses button-press (4), button-release (5) and motion-notify (6) "
   (with-reply r
     (let ((code (card8))
 	  (detail (card8))
@@ -289,7 +292,7 @@ additional 32-bit length field for the request instead)."
 	  (state (card16))
 	  (same-screen-p (card8))
 	  (unused (card8)))
-      (assert (= 6 code))
+      (assert (member code '(4 5 6)))
       (values event-x event-y state time)
       #+nil (values (ecase detail (0 :normal) (1 :hint) (t (error)))
 	      sequence-number
@@ -303,6 +306,7 @@ additional 32-bit length field for the request instead)."
 	      state
 	      same-screen-p
 	      ))))
+
 
 (defun parse-initial-reply (r)
   "Extracts *root*, *resource-id-{base, mask}* from the first response
