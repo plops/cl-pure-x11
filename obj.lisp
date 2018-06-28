@@ -435,7 +435,7 @@
   (mouse-over (outside start)
 	      ((and press #+nil :inside) active
 	       ))
-  (active (outside active-out)
+  (active (outside active-out) 
 	  ((and #+nil :inside
 		release) fire))
   (fire (t start))
