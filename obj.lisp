@@ -274,11 +274,40 @@
 
 (printing-unreadably
  (pos state timestamp)
+ (defclass/std button-press-event ()
+   ((pos :type vec2)
+    (state :std nil)
+    (timestamp :std nil)
+    )))
+(printing-unreadably
+ (pos state timestamp)
+ (defclass/std button-release-event ()
+   ((pos :type vec2)
+    (state :std nil)
+    (timestamp :std nil)
+    )))
+(printing-unreadably
+ (pos state timestamp)
  (defclass/std motion-event ()
    ((pos :type vec2)
     (state :std nil)
     (timestamp :std nil)
     )))
+
+
+(defun make-button-press-event (msg)
+  (multiple-value-bind (event-x event-y state timestamp) (pure-x11::parse-motion-notify msg)
+    (make-instance 'button-press-event
+		   :pos (vec2 event-x event-y)
+		   :state (pure-x11::key-button-r state)
+		   :timestamp timestamp)))
+
+(defun make-button-release-event (msg)
+  (multiple-value-bind (event-x event-y state timestamp) (pure-x11::parse-motion-notify msg)
+    (make-instance 'button-release-event
+		   :pos (vec2 event-x event-y)
+		   :state (pure-x11::key-button-r state)
+		   :timestamp timestamp)))
 
 (defun make-motion-event (msg)
   (multiple-value-bind (event-x event-y state timestamp) (pure-x11::parse-motion-notify msg)
@@ -298,11 +327,11 @@
 	      (1 (format t "reply ~{~2x ~}~%" (loop for e across msg
 						 collect e)))
 	      (4 ;; button press
-	       (let ((event (make-motion-event msg)))
+	       (let ((event (make-button-press-event msg)))
 		 (move *subject-rx* (pos event))
 		 (format t "press ~a~%" event)))
 	      (5 ;; button release
-	       (let ((event (make-motion-event msg)))
+	       (let ((event (make-button-release-event msg)))
 		 (move *subject-rx* (pos event))
 		 (format t "release ~a~%" event)))
 	      (6 ;; pointer moved
