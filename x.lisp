@@ -566,7 +566,7 @@ of the server and stores into dynamic variables."
       (card32 #x00ffffff)		; border
       (card32 5)			; bit-grav center
       (card32 1)  ; backing store when mapped
-      (card32 (event '(PointerMotion ButtonPress Exposure)))
+      (card32 (event '(PointerMotion ButtonPress ButtonRelease Exposure)))
 					; event-mask button-press  exposure
       (card32 #x0)			;colormap
    

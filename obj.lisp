@@ -301,7 +301,7 @@
 	       (let ((event (make-motion-event msg)))
 		 (move *subject-rx* (pos event))
 		 (format t "press ~a~%" event)))
-	      (4 ;; button release
+	      (5 ;; button release
 	       (let ((event (make-motion-event msg)))
 		 (move *subject-rx* (pos event))
 		 (format t "release ~a~%" event)))
