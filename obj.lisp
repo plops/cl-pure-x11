@@ -427,9 +427,14 @@
 
 
 (define-event-automaton button1-behaviour *button1*
- ((start (inside mouse-over))
+  ((start (inside mouse-over
+		  (format t "redraw button~%")
+	       (draw *button1* :gc pure-x11::*gc2*)
+	       (draw *button1*)
+	       ))
   (mouse-over (outside start)
-	      ((and press #+nil :inside) active))
+	      ((and press #+nil :inside) active
+	       ))
   (active (outside active-out)
 	  ((and #+nil :inside
 		release) fire))
