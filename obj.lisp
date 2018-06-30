@@ -470,3 +470,9 @@
 ;; Low Level X Window Programming: An Introduction by Examples
 ;; By Ross J. Maloney (2017)
 ;; p. 156 explains insertion cursor, only for monospace font
+
+
+;; latex glue and boxes
+;; https://www.overleaf.com/blog/511-boxes-and-glue-a-brief-but-visual-introduction-using-luatex
+;; https://www.overleaf.com/blog/512-pandoras-slash-hbox-using-luatex-to-lift-the-lid-of-tex-boxes
+;; https://www.overleaf.com/blog/513-how-tex-calculates-glue-settings-in-an-slash-hbox
