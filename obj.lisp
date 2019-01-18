@@ -1,3 +1,6 @@
+;; use state machines and sb-concurrency message queue to implement
+;; cursor handling and buttons
+
 
 (declaim (optimize (safety 3) (debug 3) (speed 0)))
 (ql:quickload :defclass-std)
@@ -14,8 +17,9 @@
 ;; the tcp connection is useful because I can see the communication in wireshark
 ;; https://askubuntu.com/questions/41330/let-xorg-listen-on-tcp-but-only-to-localhost
 
-
-
+;; i would like to run this in ccl as well. perhaps i should replace
+;; sbcl networking stuff with usocket like here:
+;; https://github.com/varjagg/cl-ntp-client/blob/master/cl-ntp-client.lisp
 
 ;(pure-x11::clear-area)
 ;(draw-window 0 0 120 200)
@@ -322,7 +326,7 @@
 	'button-press-event)
 
 (sb-thread:make-thread
- #'(lambda ()
+  #'(lambda ()
      (loop while t do
 	  (let ((msg  (sb-concurrency:receive-message *mailbox-rx*)))
 	    (case (aref msg 0)
