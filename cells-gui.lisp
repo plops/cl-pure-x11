@@ -1,7 +1,7 @@
 (ql:quickload "cells")
 (ql:quickload "pure-x11")
 (ql:quickload "sb-concurrency")
-
+(ql:quickload "spatial-trees")
 (defpackage :g-cells
   (:use :cl :pure-x11 :cells))
 (in-package :g-cells)
@@ -22,7 +22,6 @@
 							 (first (directory "/tmp/.X11-unix/X*"))))
 			:wait nil)
     (connect)))
-
 
 
 
