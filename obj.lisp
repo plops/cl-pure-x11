@@ -1,5 +1,6 @@
 ;; use state machines and sb-concurrency message queue to implement
-;; cursor handling and buttons
+;; cursor handling and buttons. this code can cope with some events
+;; that the xserver sends.
 
 
 (declaim (optimize (safety 3) (debug 3) (speed 0)))
