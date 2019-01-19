@@ -29,7 +29,6 @@
 			:wait nil)
     (connect)))
 
-(connect)
 
 
 (progn ;; open a window and draw a line
@@ -46,3 +45,45 @@
 (loop for i below 100 do
      (format t "~a~%" (multiple-value-list (query-pointer)))
      (sleep .1))
+
+
+
+
+(defparameter *mailbox-rx* (sb-concurrency:make-mailbox :name 'rx))
+(sb-concurrency:list-mailbox-messages *mailbox-rx*)
+
+(defun handle-x11-event (msg)
+  "0 error
+1 reply
+4 button press
+5 button release
+6 pointer moved
+12 expose"
+  (let ((type (aref msg 0)))
+   (cond
+     ((eq type 0) (format t "error ~{~2x ~}~%" (loop for e across msg
+						  collect e)))
+     ((eq type 1) (format t "reply ~{~2x ~}~%" (loop for e across msg
+						  collect e)))
+     ((member type '(4 5 6))
+      (multiple-value-bind (event-x event-y state timestamp)
+	  (pure-x11::parse-motion-notify msg)
+	(let ((button (pure-x11::key-button-r state)))
+	  (format t "pointer ~a~%" `(:msg ,msg
+					  :pos (,event-x ,event-y)
+					  :state ,state
+					  :ts ,timestamp
+					  :button ,button)))))
+     ((eq type 12)
+      (format t "expose~%")
+      )
+     (t ;; some other event
+      (format t "event ~{~2x ~}~%" (loop for e across msg
+				      collect e))))))
+
+(sb-thread:make-thread
+ #'(lambda ()
+     (loop while t do
+	  (let ((msg (pure-x11::read-reply-wait)))
+	    (handle-x11-event msg))))
+ :name "x11-event-handler-thread")
