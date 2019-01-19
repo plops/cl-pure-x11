@@ -8,6 +8,12 @@
 ;; https://github.com/plops/cl-learn-cells
 ;; https://github.com/kennytilton/celtk
 ;; http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf
+
+;; possible spatial datastructures:
+;; http://norvig.com/ltd/test/kd.lisp
+;; https://github.com/nikodemus/raylisp/blob/master/kernel/kd-tree.lisp
+;; https://github.com/rpav/spatial-trees
+
 (handler-case 
     (connect)
   (sb-bsd-sockets:connection-refused-error ()
