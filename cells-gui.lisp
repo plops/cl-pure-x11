@@ -14,6 +14,12 @@
 ;; https://github.com/nikodemus/raylisp/blob/master/kernel/kd-tree.lisp
 ;; https://github.com/rpav/spatial-trees
 
+
+;; during development connect using localhost:6000 so that I can see
+;; the packages in wireshark
+
+;; if connection fails with reason 'no protocol specified' call 'xhost +'
+
 (handler-case 
     (connect)
   (sb-bsd-sockets:connection-refused-error ()
@@ -23,6 +29,7 @@
 			:wait nil)
     (connect)))
 
+(connect)
 
 
 (progn ;; open a window and draw a line
