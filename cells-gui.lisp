@@ -2,6 +2,7 @@
 (ql:quickload "pure-x11")
 (ql:quickload "sb-concurrency")
 (ql:quickload "spatial-trees")
+(ql:quickload "cl-containers")
 (defpackage :g-cells
   (:use :cl :pure-x11 :cells))
 (in-package :g-cells)
@@ -69,6 +70,7 @@
       (multiple-value-bind (event-x event-y state timestamp)
 	  (pure-x11::parse-motion-notify msg)
 	(let ((button (pure-x11::key-button-r state)))
+	  (sb-concurrency:send-message *mailbox-rx* (list event-x event-y))
 	  (format t "pointer ~a~%" `(:msg ,msg
 					  :pos (,event-x ,event-y)
 					  :state ,state
@@ -87,3 +89,15 @@
 	  (let ((msg (pure-x11::read-reply-wait)))
 	    (handle-x11-event msg))))
  :name "x11-event-handler-thread")
+
+
+(defparameter *ring* (cl-containers:make-container 'cl-containers:ring-buffer :total-size 12))
+
+
+
+(cl-containers:insert-item  *ring*
+			    (sb-concurrency:receive-message *mailbox-rx*))
+
+(cl-containers:iterate-nodes *ring*
+			     #'(lambda (item)
+				 (format t "~a" item)))
