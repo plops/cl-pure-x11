@@ -10,11 +10,11 @@
 ;; https://github.com/kennytilton/celtk
 ;; http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf
 
-;; possible spatial datastructures:
-;; http://norvig.com/ltd/test/kd.lisp
-;; https://github.com/nikodemus/raylisp/blob/master/kernel/kd-tree.lisp
+;; spatial datastructure:
 ;; https://github.com/rpav/spatial-trees
 
+;; storage for pointer history
+;; https://github.com/gwkkwg/cl-containers/blob/master/dev/ring-buffers.lisp
 
 ;; during development connect using localhost:6000 so that I can see
 ;; the packages in wireshark
@@ -101,3 +101,27 @@
 (cl-containers:iterate-nodes *ring*
 			     #'(lambda (item)
 				 (format t "~a" item)))
+
+
+
+(defstruct (p (:constructor p (x y)))
+  x y)
+
+(p 5 6)
+
+(defun random-p (x y)
+  (p (random (float x))
+     (random (float y))))
+
+(defun p-bbox (p)
+  (with-slots (x y) p
+    (rectangles:make-rectangle
+     :lows (list (- x .1) (- y .1))
+     :highs (list (+ x .1) (+ y .1)))))
+
+(defparameter *tree* (spatial-trees:make-spatial-tree :r :rectfun #'p-bbox))
+
+(loop for i below 100 do
+     (spatial-trees:insert (random-p 5 5) *tree*))
+
+(spatial-trees:search (random-p 3.5 3.5) *tree*)
