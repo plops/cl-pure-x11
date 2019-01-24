@@ -3,8 +3,9 @@
 (ql:quickload "sb-concurrency")
 (ql:quickload "spatial-trees")
 (ql:quickload "cl-containers")
+(ql:quickload "alexandria")
 (defpackage :g-cells
-  (:use :cl :pure-x11 :cells))
+  (:use :cl :pure-x11 :cells :alexandria))
 (in-package :g-cells)
 ;; https://github.com/plops/cl-learn-cells
 ;; https://github.com/kennytilton/celtk
@@ -131,3 +132,33 @@
      (spatial-trees:insert (random-p 5 5) *tree*))
 
 (spatial-trees:search (random-p 3.5 3.5) *tree*)
+
+(defmacro .defmodel (name super slots)
+  `(defmodel ,name ,super
+     ,(loop for slot in slots collect
+	  (destructuring-bind (slot-name &key (accessor slot-name)
+					 (initarg (make-keyword slot-name))
+					 (type 'double-float)
+					 (initform `(c-in (coerce 0 ',type)))
+					 ) slot
+	      `(,slot-name :accessor ,accessor
+		      :initarg ,initarg
+		      :initform ,initform
+		      ;:type ,type
+		      )))))
+
+(.defmodel rect ()
+	   #.`((x)
+	     (y)
+	     (xspan)
+	     (yspan)
+	     ,@(loop for c in '(x y) append
+		    (loop for (n op) in '((min -) (max +)) collect
+			 `(,(symbolicate c n)
+			    :initform (c? (,op (self ,c)
+					     (/ (self
+						 ,(symbolicate 'x 'span)) 2))))))))
+
+
+
+(make-instance 'rect)
