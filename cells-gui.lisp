@@ -139,26 +139,35 @@
 	  (destructuring-bind (slot-name &key (accessor slot-name)
 					 (initarg (make-keyword slot-name))
 					 (type 'double-float)
-					 (initform `(c-in (coerce 0 ',type)))
+					 (initval 0)
+					 (initform `(c-in (coerce ,initval ',type)) initform-p)
 					 ) slot
-	      `(,slot-name :accessor ,accessor
-		      :initarg ,initarg
-		      :initform ,initform
-		      ;:type ,type
-		      )))))
+	    `(,slot-name :accessor ,accessor
+			 ,@(if initform-p
+			       `(:initform ,initform)
+			       `(:initarg ,initarg
+					  :initform ,initform)
+			       )
+					;:type ,type
+			 )))))
 
 (.defmodel rect ()
 	   #.`((x)
-	     (y)
-	     (xspan)
-	     (yspan)
+	       (y)
+	       (xspan :initval 1)
+	       (yspan :initval 1)
 	     ,@(loop for c in '(x y) append
 		    (loop for (n op) in '((min -) (max +)) collect
 			 `(,(symbolicate c n)
-			    :initform (c? (,op (self ,c)
-					     (/ (self
-						 ,(symbolicate 'x 'span)) 2))))))))
+			    :initform (c? (,op (,c self)
+					     (/ (,(symbolicate 'x 'span) self)
+						2))))))))
+
+(eval
+ `(progn
+    ,@(loop for e in '(x y xspan yspan xmin xmax ymin ymax) collect
+	   `(defobserver ,e ((self rect))
+	      (format t "~%~a=~a~%" ',e  new-value)))))
 
 
-
-(make-instance 'rect)
+(defparameter *bla* (make-instance 'rect))
