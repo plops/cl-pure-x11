@@ -16,8 +16,14 @@
 ;; storage for pointer history
 ;; https://github.com/gwkkwg/cl-containers/blob/master/dev/ring-buffers.lisp
 
+;; constraints programming
+;; 10.1.1.32.24.pdf
+
+
 ;; during development connect using localhost:6000 so that I can see
 ;; the packages in wireshark
+
+
 
 ;; if connection fails with reason 'no protocol specified' call 'xhost +'
 
