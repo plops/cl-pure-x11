@@ -163,11 +163,26 @@
 					     (/ (,(symbolicate 'x 'span) self)
 						2))))))))
 
+(defmethod draw ((self rect); &key (gc pure-x11::*gc*)
+				)
+  (with-slots (xmin xmax ymin ymax) self
+    (let ((x1 (floor xmin))
+	  (y1 (floor ymin))
+	  (x2 (floor xmax))
+	  (y2 (floor ymax))
+	  (gc pure-x11::*gc*))
+      (draw-window x1 y1 x2 y1 :gc gc)
+      (draw-window x2 y1 x2 y2 :gc gc)
+      (draw-window x2 y2 x1 y2 :gc gc)
+      (draw-window x1 y2 x1 y1 :gc gc)))
+  (force-output pure-x11::*s*))
+
 (eval
  `(progn
     ,@(loop for e in '(x y xspan yspan xmin xmax ymin ymax) collect
 	   `(defobserver ,e ((self rect))
+	      (draw self)
 	      (format t "~%~a=~a~%" ',e  new-value)))))
 
 
-(defparameter *bla* (make-instance 'rect))
+(defparameter *bla* (make-instance 'rect :x 100 :y 120 :xspan 30 :yspan 80))
