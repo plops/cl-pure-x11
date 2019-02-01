@@ -29,7 +29,7 @@
 ;; if connection fails with reason 'no protocol specified' call 'xhost +'
 
 (handler-case 
-    (connect)
+    (connect :filename "/tmp/.X11-unix/X0")
   (sb-bsd-sockets:connection-refused-error ()
     (sb-ext:run-program "/usr/bin/socat" `("-d" "-d" "TCP-LISTEN:6000,fork,bind=localhost"
 						,(format nil "UNIX-CONNECT:~a"
@@ -78,17 +78,20 @@
 	  (pure-x11::parse-motion-notify msg)
 	(let ((button (pure-x11::key-button-r state)))
 	  (sb-concurrency:send-message *mailbox-rx* (list event-x event-y))
-	  (format t "pointer ~a~%" `(:msg ,msg
-					  :pos (,event-x ,event-y)
-					  :state ,state
-					  :ts ,timestamp
-					  :button ,button)))))
+	  (format t "pointer ~{~?~^ ~}.~%"
+		  `("pos=~{~4,'0d~^x~}" ((,event-x ,event-y))
+		    "state=0x~4,'0x" (,state)
+		    "ts=~6,'0d" (,timestamp)
+		    "button=~a" (,button))))))
      ((eq type 12)
       (format t "expose~%")
       )
      (t ;; some other event
       (format t "event ~{~2x ~}~%" (loop for e across msg
 				      collect e))))))
+
+
+
 
 (sb-thread:make-thread
  #'(lambda ()
@@ -165,6 +168,7 @@
 
 (defmethod draw ((self rect); &key (gc pure-x11::*gc*)
 				)
+  (format t "method-draw-rect ~a" rect)
   (with-slots (xmin xmax ymin ymax) self
     (let ((x1 (floor xmin))
 	  (y1 (floor ymin))
@@ -182,7 +186,7 @@
     ,@(loop for e in '(x y xspan yspan xmin xmax ymin ymax) collect
 	   `(defobserver ,e ((self rect))
 	      (draw self)
-	      (format t "~%~a=~a~%" ',e  new-value)))))
+	      (format t "~&~a=~a~%" ',e  new-value)))))
 
 
 (defparameter *bla* (make-instance 'rect :x 100 :y 120 :xspan 30 :yspan 80))
