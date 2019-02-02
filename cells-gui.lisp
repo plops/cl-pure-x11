@@ -58,7 +58,7 @@
 (force-output pure-x11::*s*)
 
 
-
+#+nil
 (loop for i below 100 do
      (format t "~a~%" (multiple-value-list (query-pointer)))
      (sleep .1))
@@ -186,25 +186,16 @@
 	     (x2 (floor xmax))
 	     (y2 (floor ymax))
 	     (gc pure-x11::*gc*))
-	 (draw-window x1 y1 x2 y1	; :gc gc
+	 (draw-window x1 y1 x2 y1	 :gc gc
 		      )
-	 (draw-window x2 y1 x2 y2	; :gc gc
+	 (draw-window x2 y1 x2 y2	 :gc gc
 		      )
-	 (draw-window x2 y2 x1 y2	;:gc gc
+	 (draw-window x2 y2 x1 y2	:gc gc
 		      )
-	 (draw-window x1 y2 x1 y1	; :gc gc
+	 (draw-window x1 y2 x1 y1	 :gc gc
 		      ))))
    (force-output pure-x11::*s*)))
 
-(defun draw-rect (x1 y1 x2 y2)
- (let ((gc pure-x11::*gc*))
-   (draw-window x1 y1 x2 y1 :gc gc)
-   (draw-window x2 y1 x2 y2 :gc gc)
-   (draw-window x2 y2 x1 y2 :gc gc)
-   (draw-window x1 y2 x1 y1 :gc gc))
- (force-output pure-x11::*s*))
-
-(draw-rect 100 200 300 320)
 (pure-x11::clear-area)
 
 
@@ -212,8 +203,16 @@
  `(progn
     ,@(loop for e in '(x y xspan yspan xmin xmax ymin ymax) collect
 	   `(defobserver ,e ((self rect))
+	      (format t "~&~a=~a~%" ',e  new-value)
 	      (draw self)
-	      (format t "~&~a=~a~%" ',e  new-value)))))
+	      ))))
 
 
-(defparameter *bla* (make-instance 'rect :x 100 :y 120 :xspan 30 :yspan 80))
+(defparameter *bla* (make-instance 'rect :x (c-in 200) :y (c-in 120) :xspan (c-in 30) :yspan (c-in 80)))
+
+#+nil
+(cells:cells-reset)
+
+(pure-x11::clear-area)
+
+(setf (x *bla*) 202)
