@@ -7,6 +7,8 @@
 (defpackage :g-cells
   (:use :cl :pure-x11 :cells :alexandria))
 (in-package :g-cells)
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
 ;; https://github.com/plops/cl-learn-cells
 ;; https://github.com/kennytilton/celtk
 ;; http://www.x.org/archive/X11R7.5/doc/x11proto/proto.pdf
@@ -28,22 +30,27 @@
 
 ;; if connection fails with reason 'no protocol specified' call 'xhost +'
 
-(handler-case 
-    (connect :filename (format nil "~a" (first (directory "/tmp/.X11-unix/X*")))
-
-	     )
+(handler-case (let ((fn (format nil "~a" (first (directory "/tmp/.X11-unix/X*")))))
+		(format t "trying to open ~a.~%" fn)
+	       (connect :filename fn))
   (sb-bsd-sockets:connection-refused-error ()
+
     (sb-ext:run-program "/usr/bin/socat" `("-d" "-d" "TCP-LISTEN:6000,fork,bind=localhost"
 						,(format nil "UNIX-CONNECT:~a"
 							 (first (directory "/tmp/.X11-unix/X*"))))
 			:wait nil)
-    (connect)))
+    (connect))
+  #+nil (t
+      (sb-ext:run-program "/usr/bin/xhost" `("+")
+			:wait t)))
 
 
 
 (progn ;; open a window and draw a line
   (make-window)
   (draw-window 0 0 100 100))
+
+(draw-window 0 0 100 100)
 
 (pure-x11::clear-area)
 
@@ -157,8 +164,8 @@
 			 )))))
 
 (.defmodel rect ()
-	   #.`((x)
-	       (y)
+	   #.`((x :initval 0)
+	       (y :initval 0)
 	       (xspan :initval 1)
 	       (yspan :initval 1)
 	     ,@(loop for c in '(x y) append
@@ -170,18 +177,36 @@
 
 (defmethod draw ((self rect); &key (gc pure-x11::*gc*)
 				)
-  (format t "method-draw-rect ~a" rect)
-  (with-slots (xmin xmax ymin ymax) self
-    (let ((x1 (floor xmin))
-	  (y1 (floor ymin))
-	  (x2 (floor xmax))
-	  (y2 (floor ymax))
-	  (gc pure-x11::*gc*))
-      (draw-window x1 y1 x2 y1 :gc gc)
-      (draw-window x2 y1 x2 y2 :gc gc)
-      (draw-window x2 y2 x1 y2 :gc gc)
-      (draw-window x1 y2 x1 y1 :gc gc)))
-  (force-output pure-x11::*s*))
+  (format t "method-draw-rect")
+  (progn
+    (with-slots (xmin xmax ymin ymax) self
+      (when (and xmin xmax ymin ymax)
+       (let ((x1 (floor xmin))
+	     (y1 (floor ymin))
+	     (x2 (floor xmax))
+	     (y2 (floor ymax))
+	     (gc pure-x11::*gc*))
+	 (draw-window x1 y1 x2 y1	; :gc gc
+		      )
+	 (draw-window x2 y1 x2 y2	; :gc gc
+		      )
+	 (draw-window x2 y2 x1 y2	;:gc gc
+		      )
+	 (draw-window x1 y2 x1 y1	; :gc gc
+		      ))))
+   (force-output pure-x11::*s*)))
+
+(defun draw-rect (x1 y1 x2 y2)
+ (let ((gc pure-x11::*gc*))
+   (draw-window x1 y1 x2 y1 :gc gc)
+   (draw-window x2 y1 x2 y2 :gc gc)
+   (draw-window x2 y2 x1 y2 :gc gc)
+   (draw-window x1 y2 x1 y1 :gc gc))
+ (force-output pure-x11::*s*))
+
+(draw-rect 100 200 300 320)
+(pure-x11::clear-area)
+
 
 (eval
  `(progn
