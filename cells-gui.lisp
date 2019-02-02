@@ -29,7 +29,7 @@
 ;; if connection fails with reason 'no protocol specified' call 'xhost +'
 
 (handler-case 
-    (connect)
+    (connect :filename (format nil "~a" (first (directory "/tmp/.X11-unix/X*"))))
   (sb-bsd-sockets:connection-refused-error ()
     (sb-ext:run-program "/usr/bin/socat" `("-d" "-d" "TCP-LISTEN:6000,fork,bind=localhost"
 						,(format nil "UNIX-CONNECT:~a"
