@@ -40,9 +40,9 @@
 							 (first (directory "/tmp/.X11-unix/X*"))))
 			:wait nil)
     (connect))
-  #+nil (t
+  (pure-x11::con-fail-0 ()
       (sb-ext:run-program "/usr/bin/xhost" `("+")
-			:wait t)))
+       :wait t)))
 
 
 

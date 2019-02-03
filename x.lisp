@@ -177,6 +177,11 @@ reply length and if necessary reads the rest of the reply packet.
 	      (sb-sys:read-n-bytes *s* buf 0 (length buf))
 	      buf))))
 
+(define-condition con-fail-0 (error)
+  ())
+(define-condition con-fail-2 (error)
+  ())
+
 (defun read-connection-response ()
   ;; Upon connection the server responds with one of three replies. The
   ;; first 8 bytes are similar in those. The card16 at index six
@@ -195,8 +200,10 @@ reply length and if necessary reads the rest of the reply packet.
 	    (setf (aref m i) (aref buf i)))
 	  (sb-sys:read-n-bytes *s* m 8 (* 4 reply-length))
 	  (ecase success-state
-	    (0 (error "failed"))
-	    (2 (error "authenticate"))
+	    (0 (error 'con-fail-0 ; "failed"
+		      ))
+	    (2 (error 'con-fail-2 ;"authenticate"
+		      ))
 	    (1 m)))))))
 
 (defun connect (&key (ip #(127 0 0 1)) (filename nil) (port 6000))
